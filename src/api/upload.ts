@@ -27,17 +27,6 @@ export const uploadFileAPI = (params: UploadFileParams) => {
 };
 
 /**
- * 秒传检查
- * @param params 检查参数（hash 和 fileSize）
- * @returns 如果文件已存在返回文件信息，否则返回 null
- */
-export const checkInstantUploadAPI = (params: CheckInstantUploadParams) => {
-  return request<CheckInstantUploadResponse | null>('POST', '/qiniu/check_instant_upload', {
-    data: params,
-  });
-};
-
-/**
  * 分片上传
  * @param params 分片上传参数
  * @returns 上传进度或完成信息

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, Upload, message, Select, Button, Progress, Space, Alert, Image, Tag } from 'antd';
 import { AiOutlineInbox, AiOutlineUpload, AiOutlineDelete, AiOutlineCheckCircle } from 'react-icons/ai';
 import type { UploadProps, UploadFile } from 'antd';
-import { uploadFileAPI, checkInstantUploadAPI, chunkUploadAPI, getUploadProgressAPI, cancelUploadAPI } from '@/api/upload';
+import { uploadFileAPI, chunkUploadAPI, getUploadProgressAPI, cancelUploadAPI } from '@/api/upload';
 import { getAlbumListAPI } from '@/api/album';
 import type { Album } from '@/types/album';
 import { useNavigate } from 'react-router';
@@ -110,26 +110,6 @@ export default () => {
     return Math.floor(totalProgress / tasks.length);
   };
 
-  // 秒传检查
-  const checkInstantUpload = async (file: File): Promise<boolean> => {
-    try {
-      const hash = await calculateFileHash(file);
-      const result = await checkInstantUploadAPI({
-        hash,
-        fileSize: file.size,
-      });
-
-      if (result.data) {
-        message.success(`${file.name} 秒传成功！`);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('秒传检查失败:', error);
-      return false;
-    }
-  };
-
   // 分片上传单个文件
   const uploadFileByChunks = async (file: File, uploadId: string, hash?: string, albumId?: number): Promise<void> => {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -233,23 +213,6 @@ export default () => {
 
     try {
       // 1. 秒传检查
-      const isInstant = await checkInstantUpload(file);
-      if (isInstant) {
-        // 秒传成功，获取文件信息
-        const hash = await calculateFileHash(file);
-        const checkResult = await checkInstantUploadAPI({
-          hash,
-          fileSize: file.size,
-        });
-        if (checkResult.data) {
-          updateUploadTask(uploadId, {
-            status: 'completed',
-            progress: 100,
-            result: checkResult.data,
-          });
-          return checkResult.data;
-        }
-      }
 
       // 2. 计算文件 hash
       updateUploadTask(uploadId, { status: 'uploading', progress: 5 });

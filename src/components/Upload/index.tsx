@@ -2,13 +2,7 @@ import { useState, useRef } from 'react';
 import { Upload, message, Select, Button, Progress, Space, Alert } from 'antd';
 import { AiOutlineInbox, AiOutlineUpload } from 'react-icons/ai';
 import type { UploadProps, UploadFile } from 'antd';
-import {
-  uploadFileAPI,
-  checkInstantUploadAPI,
-  chunkUploadAPI,
-  getUploadProgressAPI,
-  cancelUploadAPI,
-} from '@/api/upload';
+import { uploadFileAPI, chunkUploadAPI, getUploadProgressAPI, cancelUploadAPI } from '@/api/upload';
 import { calculateFileHash } from '@/utils/hash';
 import type { FileUploadTask } from '@/types/upload';
 
@@ -35,7 +29,7 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
   const [uploadTasks, setUploadTasks] = useState<Map<string, FileUploadTask>>(new Map());
   const uploadTasksRef = useRef<Map<string, FileUploadTask>>(new Map());
   const cancelTokensRef = useRef<Map<string, AbortController>>(new Map());
-  
+
   // 分片大小：4MB
   const CHUNK_SIZE = 4 * 1024 * 1024;
   // 大文件阈值：超过 10MB 使用分片上传
@@ -86,33 +80,8 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
     return Math.floor(totalProgress / tasks.length);
   };
 
-  // 秒传检查
-  const checkInstantUpload = async (file: File): Promise<boolean> => {
-    try {
-      const hash = await calculateFileHash(file);
-      const result = await checkInstantUploadAPI({
-        hash,
-        fileSize: file.size,
-      });
-
-      if (result.data) {
-        message.success(`${file.name} 秒传成功！`);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('秒传检查失败:', error);
-      return false;
-    }
-  };
-
   // 分片上传单个文件
-  const uploadFileByChunks = async (
-    file: File,
-    uploadId: string,
-    hash?: string,
-    albumId?: number
-  ): Promise<void> => {
+  const uploadFileByChunks = async (file: File, uploadId: string, hash?: string, albumId?: number): Promise<void> => {
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     const abortController = new AbortController();
     cancelTokensRef.current.set(uploadId, abortController);
@@ -212,31 +181,12 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
     setUploadTasks(new Map(uploadTasksRef.current));
 
     try {
-      // 1. 秒传检查
-      const isInstant = await checkInstantUpload(file);
-      if (isInstant) {
-        // 秒传成功，获取文件信息
-        const hash = await calculateFileHash(file);
-        const checkResult = await checkInstantUploadAPI({
-          hash,
-          fileSize: file.size,
-        });
-        if (checkResult.data) {
-          updateUploadTask(uploadId, {
-            status: 'completed',
-            progress: 100,
-            result: checkResult.data,
-          });
-          return checkResult.data;
-        }
-      }
-
-      // 2. 计算文件 hash
+      // 1. 计算文件 hash
       updateUploadTask(uploadId, { status: 'uploading', progress: 5 });
       const hash = await calculateFileHash(file);
       updateUploadTask(uploadId, { hash, progress: 10 });
 
-      // 3. 根据文件大小选择上传方式
+      // 2. 根据文件大小选择上传方式
       if (file.size > LARGE_FILE_THRESHOLD) {
         // 大文件使用分片上传
         await uploadFileByChunks(file, uploadId, hash, albumId);
@@ -462,36 +412,19 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
             <div key={task.uploadId} className="border rounded p-3">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm truncate flex-1">{task.file.name}</span>
-                <span className="text-xs text-gray-500 ml-2">
-                  {(task.file.size / 1024 / 1024).toFixed(2)} MB
-                </span>
+                <span className="text-xs text-gray-500 ml-2">{(task.file.size / 1024 / 1024).toFixed(2)} MB</span>
               </div>
-              <Progress
-                percent={task.progress}
-                status={
-                  task.status === 'completed'
-                    ? 'success'
-                    : task.status === 'error' || task.status === 'cancelled'
-                      ? 'exception'
-                      : 'active'
-                }
-                size="small"
-              />
+              <Progress percent={task.progress} status={task.status === 'completed' ? 'success' : task.status === 'error' || task.status === 'cancelled' ? 'exception' : 'active'} size="small" />
               <div className="flex justify-between items-center mt-2">
                 <span className="text-xs text-gray-500">
                   {task.status === 'checking' && '检查中...'}
-                  {task.status === 'uploading' &&
-                    `上传中 ${task.uploadedChunks.length}/${task.totalChunks} 分片`}
+                  {task.status === 'uploading' && `上传中 ${task.uploadedChunks.length}/${task.totalChunks} 分片`}
                   {task.status === 'completed' && '上传完成'}
                   {task.status === 'error' && `错误: ${task.error}`}
                   {task.status === 'cancelled' && '已取消'}
                 </span>
                 {task.status === 'uploading' && (
-                  <Button
-                    size="small"
-                    danger
-                    onClick={() => cancelUpload(task.uploadId)}
-                  >
+                  <Button size="small" danger onClick={() => cancelUpload(task.uploadId)}>
                     取消
                   </Button>
                 )}
