@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores';
 
 // 配置项目API域名
 export const baseURL = 'http://localhost:3000/api';
+// export const baseURL = 'https://phone-api.liuyuyang.net/api';
 
 // 创建 axios 实例
 export const instance = axios.create({
