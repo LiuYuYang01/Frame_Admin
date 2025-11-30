@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, Button, Image, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination } from 'antd';
 import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
-import { getAlbumDetailAPI, getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
+import { getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
 import { updatePhotoAPI, deletePhotoAPI } from '@/api/photo';
-import type { Album } from '@/types/album';
 import type { Photo } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
@@ -20,7 +19,6 @@ const getOriginalImageUrl = (url: string) => {
 export default () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [album, setAlbum] = useState<Album | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -42,28 +40,17 @@ export default () => {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const isAllAlbumPhotosSelected = photos.length > 0 && selectedAlbumPhotoIds.length === photos.length;
 
-  // 加载相册详情
-  const loadAlbumDetail = async () => {
+  // 加载相册照片
+  const getAlbumPhotos = async () => {
     if (!id) return;
     try {
       setLoading(true);
-      const res = await getAlbumDetailAPI(Number(id));
-      setAlbum(res.data);
-    } catch {
-      message.error('加载相册详情失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 加载相册照片
-  const loadAlbumPhotos = async () => {
-    if (!id) return;
-    try {
       const { data } = await getAlbumPhotosAPI(Number(id), { page: 1, limit: 100, width: 300, height: 300 });
       setPhotos(data.result);
     } catch {
       message.error('加载照片列表失败');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,8 +76,7 @@ export default () => {
   };
 
   useEffect(() => {
-    loadAlbumDetail();
-    loadAlbumPhotos();
+    getAlbumPhotos();
   }, [id]);
 
   useEffect(() => {
@@ -111,21 +97,20 @@ export default () => {
     setSelectedAlbumPhotoIds((prev) => prev.filter((id) => photos.some((photo) => photo.id === id)));
   }, [photos]);
 
-  // 添加照片到相册
+  // 绑定照片到相册
   const handleAddPhotos = async () => {
     if (selectedPhotoIds.length === 0) {
-      message.warning('请选择要添加的照片');
+      message.warning('请选择要绑定的照片');
       return;
     }
     try {
       await addPhotosToAlbumAPI(Number(id), { photo_ids: selectedPhotoIds });
-      message.success(`成功添加 ${selectedPhotoIds.length} 张照片`);
+      message.success(`成功绑定 ${selectedPhotoIds.length} 张照片`);
       setIsAddModalOpen(false);
       setSelectedPhotoIds([]);
-      loadAlbumPhotos();
-      loadAlbumDetail();
+      getAlbumPhotos();
     } catch {
-      message.error('添加照片失败');
+      message.error('绑定照片失败');
     }
   };
 
@@ -150,7 +135,7 @@ export default () => {
       setIsEditModalOpen(false);
       setEditingPhoto(null);
       setEditPhotoName('');
-      loadAlbumPhotos();
+      getAlbumPhotos();
     } catch {
       message.error('修改照片名称失败');
     }
@@ -181,8 +166,7 @@ export default () => {
         try {
           await deletePhotoAPI([photo.id]);
           message.success('照片已彻底删除');
-          loadAlbumPhotos();
-          loadAlbumDetail();
+          getAlbumPhotos();
         } catch {
           message.error('删除照片失败');
         }
@@ -195,8 +179,7 @@ export default () => {
               try {
                 await removePhotosFromAlbumAPI(Number(id), { photo_ids: [photo.id] });
                 message.success('已从相册中移除');
-                loadAlbumPhotos();
-                loadAlbumDetail();
+                getAlbumPhotos();
               } catch {
                 message.error('移除失败');
               }
@@ -239,8 +222,7 @@ export default () => {
           message.success('已从相册中移除选中照片');
           setSelectedAlbumPhotoIds([]);
           setIsBulkSelectMode(false);
-          loadAlbumPhotos();
-          loadAlbumDetail();
+          getAlbumPhotos();
         } catch {
           message.error('移除失败');
         } finally {
@@ -276,8 +258,7 @@ export default () => {
           message.success('已彻底删除选中照片');
           setSelectedAlbumPhotoIds([]);
           setIsBulkSelectMode(false);
-          loadAlbumPhotos();
-          loadAlbumDetail();
+          getAlbumPhotos();
         } catch {
           message.error('删除失败');
         } finally {
@@ -287,7 +268,7 @@ export default () => {
     });
   };
 
-  if (loading && !album) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <Spin size="large" />
@@ -295,25 +276,8 @@ export default () => {
     );
   }
 
-  if (!album) {
-    return (
-      <div className="p-6">
-        <Empty description="相册不存在" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-2">
-      <div>
-        <Card className="[&>.ant-card-body]:!p-4 [&>.ant-card-body]:!py-2">
-          <div className="flex justify-between items-center">
-            <h1 className="text-lg font-bold">{album.name}</h1>
-            <span className="text-sm text-gray-500">{album.description}</span>
-          </div>
-        </Card>
-      </div>
-
       {/* 照片网格 */}
       <div>
         <Card
@@ -323,7 +287,7 @@ export default () => {
               <Button type={isBulkSelectMode ? 'primary' : 'default'} danger={isBulkSelectMode} onClick={toggleBulkSelectMode}>
                 {isBulkSelectMode ? '退出批量' : '批量选择'}
               </Button>
-              <Button onClick={() => setIsAddModalOpen(true)}>添加照片</Button>
+              <Button onClick={() => setIsAddModalOpen(true)}>绑定照片</Button>
               <Button type="primary" onClick={() => setIsUploadModalOpen(true)}>
                 上传照片
               </Button>
@@ -337,7 +301,7 @@ export default () => {
                 <span>
                   暂无照片，点击
                   <span className="text-primary cursor-pointer ml-1" onClick={() => setIsAddModalOpen(true)}>
-                    添加照片
+                    绑定照片
                   </span>
                 </span>
               }
@@ -555,11 +519,10 @@ export default () => {
       {/* 上传照片弹窗 */}
       <Modal title="上传照片" open={isUploadModalOpen} onCancel={() => setIsUploadModalOpen(false)} footer={null} width={600}>
         <UploadPanel
-          albumId={album?.id ?? null}
+          albumId={id ? Number(id) : null}
           onUploaded={() => {
             setIsUploadModalOpen(false);
-            loadAlbumPhotos();
-            loadAlbumDetail();
+            getAlbumPhotos();
           }}
         />
       </Modal>

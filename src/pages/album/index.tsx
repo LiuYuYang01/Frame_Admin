@@ -157,6 +157,40 @@ export default () => {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+              {/* 全部相册 */}
+              <Tooltip
+                content={
+                  <div className="px-1 py-2">
+                    <div className="text-small font-semibold">全部</div>
+                    <div className="text-tiny text-default-400 mt-1">查看所有照片</div>
+                  </div>
+                }
+                placement="top"
+                delay={300}
+                closeDelay={0}
+                classNames={{
+                  base: 'max-w-md',
+                  content: 'bg-content1 border border-default-200 shadow-xl',
+                }}
+              >
+                <div className="relative group cursor-pointer" onClick={() => handleViewAlbum(0)}>
+                  <div className="bg-white rounded-xl !p-0.5 md:p-5 transition-all hover:-translate-y-1 overflow-hidden">
+                    <div className="flex flex-col items-center gap-2 justify-center">
+                      <div className="w-full aspect-square flex items-center justify-center">
+                        <img src={FileSvg} alt="" />
+                      </div>
+                      <div className="flex justify-between items-center w-full pb-2">
+                        <div className="text-center w-full flex flex-col justify-center">
+                          <div className="text-gray-800 truncate px-1 !text-sm md:text-base group-hover:text-blue-500 transition-colors" title="全部">
+                            全部
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Tooltip>
+
               {albums.map((album) => (
                 <Tooltip
                   key={album.id}
