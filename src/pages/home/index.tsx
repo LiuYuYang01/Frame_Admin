@@ -1,27 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Card, Row, Col, Statistic } from 'antd';
 import { motion } from 'framer-motion';
-import { AiOutlineFolderOpen, AiOutlinePicture, AiOutlineUpload, AiOutlineArrowRight } from 'react-icons/ai';
+import { AiOutlineFolderOpen, AiOutlinePicture, AiOutlineUpload, AiOutlineArrowRight, AiOutlineCloudServer } from 'react-icons/ai';
 import { useNavigate } from 'react-router';
-import { getAlbumListAPI } from '@/api/album';
-import { getPhotoListAPI } from '@/api/photo';
+import { getStatisAPI } from '@/api/statis';
+import type { StatisData } from '@/types/statis';
 
 export default () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    albumCount: 0,
-    photoCount: 0,
-  });
+  const [stats, setStats] = useState<StatisData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [{ data: albumData }, { data: photoData }] = await Promise.all([getAlbumListAPI({ page: 1, limit: 1 }), getPhotoListAPI({ page: 1, limit: 1 })]);
-        setStats({
-          albumCount: albumData.total,
-          photoCount: photoData.total,
-        });
+        const { data } = await getStatisAPI();
+        setStats(data);
       } catch (error) {
         console.error('加载统计数据失败', error);
       } finally {
@@ -87,7 +81,7 @@ export default () => {
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
       {/* 统计卡片 - 添加渐变背景和动画效果 */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={12}>
+        <Col xs={24} sm={12} lg={8}>
           <motion.div variants={itemVariants}>
             <Card loading={loading} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-10 translate-x-1/3 -translate-y-1/3" />
@@ -95,7 +89,7 @@ export default () => {
               <div className="relative z-10 flex items-center justify-between">
                 <Statistic
                   title={<span className="text-gray-600 font-medium text-base">相册总数</span>}
-                  value={stats.albumCount}
+                  value={stats?.album.count || 0}
                   valueStyle={{
                     color: '#00C27C',
                     fontSize: '2.5rem',
@@ -110,7 +104,7 @@ export default () => {
             </Card>
           </motion.div>
         </Col>
-        <Col xs={24} sm={12} lg={12}>
+        <Col xs={24} sm={12} lg={8}>
           <motion.div variants={itemVariants}>
             <Card loading={loading} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-10 translate-x-1/3 -translate-y-1/3" />
@@ -118,7 +112,7 @@ export default () => {
               <div className="relative z-10 flex items-center justify-between">
                 <Statistic
                   title={<span className="text-gray-600 font-medium text-base">照片总数</span>}
-                  value={stats.photoCount}
+                  value={stats?.photo.count || 0}
                   valueStyle={{
                     color: '#1890ff',
                     fontSize: '2.5rem',
@@ -128,6 +122,28 @@ export default () => {
                 />
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
                   <AiOutlinePicture className="text-white text-4xl" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </Col>
+        <Col xs={24} sm={12} lg={8}>
+          <motion.div variants={itemVariants}>
+            <Card loading={loading} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-10 translate-x-1/3 -translate-y-1/3" />
+
+              <div className="relative z-10 flex items-center justify-between">
+                <Statistic
+                  title={<span className="text-gray-600 font-medium text-base">照片总大小</span>}
+                  value={stats?.photo.totalSizeFormatted || '0 B'}
+                  valueStyle={{
+                    color: '#722ed1',
+                    fontSize: '2rem',
+                    fontWeight: 'bold',
+                  }}
+                />
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-200 group-hover:scale-110 transition-transform">
+                  <AiOutlineCloudServer className="text-white text-4xl" />
                 </div>
               </div>
             </Card>
