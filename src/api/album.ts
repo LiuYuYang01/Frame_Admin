@@ -55,7 +55,7 @@ export const deleteAlbumAPI = (id: number) => {
 };
 
 /**
- * 添加照片到相册
+ * 绑定照片到相册
  * @param id 相册ID
  * @param params 照片ID数组
  * @returns 添加结果

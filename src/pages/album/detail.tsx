@@ -25,7 +25,7 @@ export default () => {
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
   const [availablePhotosLoading, setAvailablePhotosLoading] = useState(false);
   const [availablePhotosPage, setAvailablePhotosPage] = useState(1);
-  const [availablePhotosLimit, setAvailablePhotosLimit] = useState(12);
+  const [availablePhotosLimit, setAvailablePhotosLimit] = useState(10);
   const [availablePhotosTotal, setAvailablePhotosTotal] = useState(0);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<number[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -55,15 +55,15 @@ export default () => {
   };
 
   // 加载待添加照片（排除当前相册已有的）
-  const loadAvailablePhotos = async (page = availablePhotosPage, limit = availablePhotosLimit) => {
+  const getPhotosExcludeFromAlbum = async (page = availablePhotosPage, limit = availablePhotosLimit) => {
     if (!id) return;
     try {
       setAvailablePhotosLoading(true);
       const { data } = await getPhotosExcludeFromAlbumAPI(Number(id), {
         page,
         limit,
-        width: 300,
-        height: 300,
+        width: 390,
+        height: 256,
         keyword: debouncedKeyword || undefined,
       });
       setAvailablePhotos(data.result);
@@ -90,7 +90,7 @@ export default () => {
 
   useEffect(() => {
     if (!isAddModalOpen) return;
-    loadAvailablePhotos(availablePhotosPage, availablePhotosLimit);
+    getPhotosExcludeFromAlbum(availablePhotosPage, availablePhotosLimit);
   }, [isAddModalOpen, debouncedKeyword, availablePhotosPage, availablePhotosLimit]);
 
   useEffect(() => {
@@ -411,20 +411,20 @@ export default () => {
         </Card>
       </div>
 
-      {/* 添加照片弹窗 */}
+      {/* 绑定照片弹窗 */}
       <Modal
-        title="添加照片到相册"
+        title="绑定照片到相册"
         open={isAddModalOpen}
-        onOk={handleAddPhotos}
+        width={900}
+        footer={null}
+        maskClosable
         onCancel={() => {
           setIsAddModalOpen(false);
           setSelectedPhotoIds([]);
+          setSearchKeyword('');
         }}
-        okText={`添加 ${selectedPhotoIds.length} 张照片`}
-        cancelText="取消"
-        width={800}
       >
-        <div className="mb-4">
+        <div className="flex justify-between items-center mb-4">
           <Input
             placeholder="搜索照片名称"
             prefix={<AiOutlineSearch />}
@@ -434,7 +434,10 @@ export default () => {
               setAvailablePhotosPage(1);
             }}
             allowClear
+            className="!w-[300px]"
           />
+
+          <Button type={selectedPhotoIds.length > 0 ? 'primary' : 'default'} onClick={handleAddPhotos}>{`绑定 ${selectedPhotoIds.length} 张照片`}</Button>
         </div>
 
         {availablePhotosLoading ? (
@@ -445,17 +448,20 @@ export default () => {
           <Empty description="没有可添加的照片" />
         ) : (
           <>
-            <div className="max-h-96 overflow-y-auto pr-2">
+            <div className="pr-2">
               <div className="grid grid-cols-4 gap-4">
                 {availablePhotos.map((photo) => (
                   <div
                     key={photo.id}
-                    className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all ${selectedPhotoIds.includes(photo.id) ? 'border-blue-500' : 'border-transparent'}`}
+                    className={`relative cursor-pointer transition-all`}
                     onClick={() => {
                       setSelectedPhotoIds((prev) => (prev.includes(photo.id) ? prev.filter((id) => id !== photo.id) : [...prev, photo.id]));
                     }}
                   >
-                    <img src={photo.url} alt={photo.name} className="w-full h-24 object-cover" />
+                    <div className="h-32 rounded-lg overflow-hidden">
+                      <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                    </div>
+
                     <Checkbox
                       checked={selectedPhotoIds.includes(photo.id)}
                       className="absolute top-2 right-2"
@@ -464,7 +470,7 @@ export default () => {
                         setSelectedPhotoIds((prev) => (prev.includes(photo.id) ? prev.filter((id) => id !== photo.id) : [...prev, photo.id]));
                       }}
                     />
-                    <div className="p-2 bg-white text-xs truncate">{photo.name}</div>
+                    <div className={`p-2 bg-white text-xs truncate ${selectedPhotoIds.includes(photo.id) ? 'text-primary' : 'text-gray-700'}`}>{photo.name}</div>
                   </div>
                 ))}
               </div>
@@ -472,13 +478,12 @@ export default () => {
             {availablePhotosTotal > availablePhotosLimit && (
               <div className="mt-4 flex justify-center">
                 <Pagination
-                  size="small"
                   current={availablePhotosPage}
                   pageSize={availablePhotosLimit}
                   total={availablePhotosTotal}
                   showSizeChanger
                   showTotal={(total) => `共 ${total} 张`}
-                  pageSizeOptions={['8', '12', '16', '24']}
+                  pageSizeOptions={['10', '20', '50', '100']}
                   onChange={(page, pageSize) => {
                     setAvailablePhotosPage(page);
                     setAvailablePhotosLimit(pageSize);
