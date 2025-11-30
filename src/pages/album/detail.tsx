@@ -22,6 +22,9 @@ export default () => {
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [photosPage, setPhotosPage] = useState(1);
+  const [photosLimit, setPhotosLimit] = useState(24);
+  const [photosTotal, setPhotosTotal] = useState(0);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
   const [availablePhotosLoading, setAvailablePhotosLoading] = useState(false);
@@ -42,12 +45,13 @@ export default () => {
   const isAllAlbumPhotosSelected = photos.length > 0 && selectedAlbumPhotoIds.length === photos.length;
 
   // 加载相册照片
-  const getAlbumPhotos = async () => {
+  const getAlbumPhotos = async (page = photosPage, limit = photosLimit) => {
     if (!id) return;
     try {
       setLoading(true);
-      const { data } = await getAlbumPhotosAPI(Number(id), { page: 1, limit: 100, width: 300, height: 300 });
+      const { data } = await getAlbumPhotosAPI(Number(id), { page, limit, width: 300, height: 300 });
       setPhotos(data.result);
+      setPhotosTotal(data.total);
     } catch {
       message.error('加载照片列表失败');
     } finally {
@@ -77,8 +81,17 @@ export default () => {
   };
 
   useEffect(() => {
-    getAlbumPhotos();
+    if (id) {
+      setPhotosPage(1);
+      setPhotosLimit(24);
+    }
   }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      getAlbumPhotos(photosPage, photosLimit);
+    }
+  }, [id, photosPage, photosLimit]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -428,6 +441,23 @@ export default () => {
                   );
                 })}
               </div>
+
+              {photosTotal > photosLimit && (
+                <div className="mt-6 flex justify-center">
+                  <Pagination
+                    current={photosPage}
+                    pageSize={photosLimit}
+                    total={photosTotal}
+                    showSizeChanger
+                    showTotal={(total) => `共 ${total} 张照片`}
+                    pageSizeOptions={['12', '24', '48', '96']}
+                    onChange={(page, pageSize) => {
+                      setPhotosPage(page);
+                      setPhotosLimit(pageSize);
+                    }}
+                  />
+                </div>
+              )}
             </>
           )}
         </Card>
