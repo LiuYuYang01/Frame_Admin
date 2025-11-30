@@ -89,7 +89,7 @@ export default () => {
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-xl
                       transition-all duration-200 group relative overflow-hidden
-                      ${isActive ? 'bg-primary text-white shadow-lg shadow-blue-200' : 'text-gray-700 hover:bg-gray-100'}
+                      ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-700 hover:bg-gray-100'}
                     `}
                   >
                     {/* 图标 */}
@@ -119,7 +119,7 @@ export default () => {
 
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-800 truncate">Admin</p>
-                <p className="text-xs text-gray-500 truncate">admin@thrivex.com</p>
+                <p className="text-xs text-gray-500 truncate">admin@frame.com</p>
               </motion.div>
             </div>
           </div>

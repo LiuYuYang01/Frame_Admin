@@ -72,13 +72,13 @@ export default () => {
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="text-center mb-8">
             <div className="flex items-center justify-center">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl blur-lg opacity-50"></div>
-                <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 rounded-2xl blur-lg opacity-50"></div>
+                <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-xl">
                   <FiImage className="text-white text-3xl" />
                 </div>
               </div>
 
-              <h1 className="text-2xl font-bold ml-4">ThriveX</h1>
+              <h1 className="text-2xl font-bold ml-4">Frame</h1>
             </div>
           </motion.div>
 
@@ -134,7 +134,7 @@ export default () => {
 
           {/* 装饰元素 */}
           <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-center text-xs text-gray-500">© 2024 ThriveX. 让美好回忆井然有序 📸</p>
+            <p className="text-center text-xs text-gray-500">© 2024 Frame. 让美好回忆井然有序 📸</p>
           </div>
         </div>
 
