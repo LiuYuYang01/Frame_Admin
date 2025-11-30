@@ -1,5 +1,5 @@
 import request from '@/utils/request';
-import type { UploadFileParams, UploadFileResponse, CheckInstantUploadParams, CheckInstantUploadResponse, ChunkUploadParams, ChunkUploadResponse, UploadProgressResponse } from '@/types/upload';
+import type { UploadFileParams, UploadFileResponse, ChunkUploadParams, ChunkUploadResponse, UploadProgressResponse } from '@/types/upload';
 
 /**
  * 文件上传（支持批量上传）
