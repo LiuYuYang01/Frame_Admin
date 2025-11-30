@@ -7,6 +7,7 @@ import { updatePhotoAPI, deletePhotoAPI } from '@/api/photo';
 import type { Photo } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
+import { formatFileSize } from '@/utils/formatSize';
 
 // 去除?imageView2/1/w/300/h/300显示原图
 const getOriginalImageUrl = (url: string) => {
@@ -25,7 +26,7 @@ export default () => {
   const [availablePhotos, setAvailablePhotos] = useState<Photo[]>([]);
   const [availablePhotosLoading, setAvailablePhotosLoading] = useState(false);
   const [availablePhotosPage, setAvailablePhotosPage] = useState(1);
-  const [availablePhotosLimit, setAvailablePhotosLimit] = useState(10);
+  const [availablePhotosLimit, setAvailablePhotosLimit] = useState(12);
   const [availablePhotosTotal, setAvailablePhotosTotal] = useState(0);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<number[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -293,7 +294,7 @@ export default () => {
               </Button>
             </Space>
           }
-          className="[&_.ant-card-body]:min-h-[calc(100vh-235px)]"
+          className="[&_.ant-card-body]:min-h-[calc(100vh-180px)]"
         >
           {photos.length === 0 ? (
             <Empty
@@ -335,18 +336,39 @@ export default () => {
                     <Tooltip
                       key={photo.id}
                       content={
-                        photo.description ? (
-                          <div className="px-1 py-2 max-w-xs">
-                            <div className="text-small font-semibold mb-2">{photo.name}</div>
-                            <div className="text-tiny leading-relaxed mb-2">{photo.description}</div>
-                            <div className="text-tiny text-default-400 pt-2 border-t border-default-200">上传于 {new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                        <div className="px-1 py-2">
+                          <div className="text-tiny text-default-400 mt-1">
+                            <div className="flex space-x-2">
+                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片名称：</span>
+                              <span className="line-clamp-1 text-gray-600">{photo.name}</span>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片尺寸：</span>
+                              <span className="text-gray-600">{photo.width && photo.height ? `${photo.width} × ${photo.height}` : '未知'}</span>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片大小：</span>
+                              <span className="text-gray-600">{formatFileSize(photo.size)}</span>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片类型：</span>
+                              <span className="text-gray-600">{photo.type ? photo.type.toUpperCase() : '未知'}</span>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片时间：</span>
+                              <span className="text-gray-600">{new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            </div>
+
+                            <div className="flex space-x-2">
+                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片描述：</span>
+                              <span className="line-clamp-1 text-gray-600">{photo.description || '---'}</span>
+                            </div>
                           </div>
-                        ) : (
-                          <div className="px-1 py-2">
-                            <div className="text-small font-semibold">{photo.name}</div>
-                            <div className="text-tiny text-default-400 mt-1">上传于 {new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                          </div>
-                        )
+                        </div>
                       }
                       placement="top"
                       delay={300}
@@ -483,7 +505,7 @@ export default () => {
                   total={availablePhotosTotal}
                   showSizeChanger
                   showTotal={(total) => `共 ${total} 张`}
-                  pageSizeOptions={['10', '20', '50', '100']}
+                  pageSizeOptions={['12', '24', '56', '100']}
                   onChange={(page, pageSize) => {
                     setAvailablePhotosPage(page);
                     setAvailablePhotosLimit(pageSize);

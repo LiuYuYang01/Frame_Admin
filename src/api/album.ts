@@ -25,15 +25,6 @@ export const getAlbumListAPI = (params?: QueryAlbumParams) => {
 };
 
 /**
- * 获取相册详情
- * @param id 相册ID
- * @returns 相册详情（包含照片数量）
- */
-export const getAlbumDetailAPI = (id: number) => {
-  return request<Album>('GET', `/album/detail/${id}`);
-};
-
-/**
  * 更新相册
  * @param id 相册ID
  * @param params 更新参数（名称、描述、封面）

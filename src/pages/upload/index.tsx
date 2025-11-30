@@ -7,6 +7,7 @@ import { getAlbumListAPI } from '@/api/album';
 import type { Album } from '@/types/album';
 import { useNavigate } from 'react-router';
 import { calculateFileHash } from '@/utils/hash';
+import { formatFileSize } from '@/utils/formatSize';
 import type { FileUploadTask } from '@/types/upload';
 
 const { Dragger } = Upload;
@@ -486,7 +487,7 @@ export default () => {
                 <div className="mt-6 flex justify-between items-center">
                   <span className="text-gray-600">
                     已选择 {fileList.length} 个文件，总大小：
-                    {(fileList.reduce((acc, file) => acc + (file.size || 0), 0) / 1024 / 1024).toFixed(2)} MB
+                    {formatFileSize(fileList.reduce((acc, file) => acc + (file.size || 0), 0))}
                   </span>
                   <Space>
                     <Button onClick={() => setFileList([])}>清空</Button>
@@ -511,7 +512,7 @@ export default () => {
                     <div key={task.uploadId} className="border rounded p-3">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm truncate flex-1">{task.file.name}</span>
-                        <span className="text-xs text-gray-500 ml-2">{(task.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                        <span className="text-xs text-gray-500 ml-2">{formatFileSize(task.file.size)}</span>
                       </div>
                       <Progress percent={task.progress} status={task.status === 'completed' ? 'success' : task.status === 'error' || task.status === 'cancelled' ? 'exception' : 'active'} size="small" />
                       <div className="flex justify-between items-center mt-2">
@@ -562,7 +563,7 @@ export default () => {
                 <Image src={photo.url} alt={photo.name} className="w-full h-40 object-cover rounded-lg" preview />
                 <div className="mt-2">
                   <div className="text-sm text-gray-800 truncate">{photo.name}</div>
-                  <div className="text-xs text-gray-500">{(photo.size / 1024 / 1024).toFixed(2)} MB</div>
+                  <div className="text-xs text-gray-500">{formatFileSize(photo.size)}</div>
                 </div>
               </div>
             ))}
