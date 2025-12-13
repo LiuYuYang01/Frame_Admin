@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Button, Modal, Form, Input, message, Card, Empty, Spin, Dropdown, Image } from 'antd';
+import { Button, Modal, Form, Input, message, Card, Empty, Spin, Dropdown, Image, Select, Checkbox, Pagination } from 'antd';
 import { AiOutlineEdit, AiOutlineDelete, AiOutlineEllipsis, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
 import { useNavigate } from 'react-router';
 import { Tooltip } from '@heroui/react';
 import { getFootprintListAPI, createFootprintAPI, updateFootprintAPI, deleteFootprintAPI } from '@/api/footprint';
+import { getAlbumListAPI, getAlbumPhotosAPI } from '@/api/album';
 import type { Footprint, CreateFootprintParams, UpdateFootprintParams } from '@/types/footprint';
+import type { Album } from '@/types/album';
+import type { Photo } from '@/types/photo';
 import type { MenuProps } from 'antd';
 
 const { TextArea } = Input;
@@ -20,6 +23,17 @@ export default () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [isPhotoSelectModalOpen, setIsPhotoSelectModalOpen] = useState(false);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<number | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [photosPage, setPhotosPage] = useState(1);
+  const [photosLimit, setPhotosLimit] = useState(24);
+  const [photosTotal, setPhotosTotal] = useState(0);
+  const [selectedPhotoUrls, setSelectedPhotoUrls] = useState<string[]>([]);
+  const [photoSearchKeyword, setPhotoSearchKeyword] = useState('');
+  const [debouncedPhotoKeyword, setDebouncedPhotoKeyword] = useState('');
 
   // 防抖处理搜索关键词
   useEffect(() => {
@@ -51,20 +65,72 @@ export default () => {
     loadFootprints();
   }, [pagination, debouncedKeyword]);
 
+  // 加载相册列表
+  const loadAlbums = async () => {
+    try {
+      const { data } = await getAlbumListAPI({ page: 1, limit: 100 });
+      setAlbums(data.result);
+      if (data.result.length > 0 && !selectedAlbumId) {
+        setSelectedAlbumId(data.result[0].id);
+      }
+    } catch {
+      message.error('加载相册列表失败');
+    }
+  };
+
+  // 加载相册照片
+  const loadAlbumPhotos = async (albumId: number, page = photosPage, limit = photosLimit) => {
+    try {
+      setPhotosLoading(true);
+      const { data } = await getAlbumPhotosAPI(albumId, {
+        page,
+        limit,
+        width: 300,
+        height: 300,
+        keyword: debouncedPhotoKeyword || undefined,
+      });
+      setPhotos(data.result);
+      setPhotosTotal(data.total);
+    } catch {
+      message.error('加载照片列表失败');
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
+
+  // 防抖处理照片搜索关键词
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedPhotoKeyword(photoSearchKeyword.trim());
+      setPhotosPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [photoSearchKeyword]);
+
+  // 当相册ID或搜索关键词变化时加载照片
+  useEffect(() => {
+    if (selectedAlbumId && isPhotoSelectModalOpen) {
+      loadAlbumPhotos(selectedAlbumId, photosPage, photosLimit);
+    }
+  }, [selectedAlbumId, photosPage, photosLimit, debouncedPhotoKeyword, isPhotoSelectModalOpen]);
+
   // 打开创建/编辑弹窗
   const handleOpenModal = (footprint?: Footprint) => {
     if (footprint) {
       setEditingFootprint(footprint);
+      const imageUrls = footprint.images || [];
       form.setFieldsValue({
         title: footprint.title,
         content: footprint.content,
         address: footprint.address,
         position: footprint.position,
-        images: footprint.images?.join('\n') || '',
+        images: imageUrls,
       });
+      setSelectedPhotoUrls(imageUrls);
     } else {
       setEditingFootprint(null);
       form.resetFields();
+      setSelectedPhotoUrls([]);
     }
     setIsModalOpen(true);
   };
@@ -73,12 +139,7 @@ export default () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const images = values.images
-        ? values.images
-            .split('\n')
-            .map((url: string) => url.trim())
-            .filter((url: string) => url)
-        : [];
+      const images = values.images && Array.isArray(values.images) ? values.images.filter((url: string) => url) : [];
 
       const params = {
         ...values,
@@ -95,6 +156,7 @@ export default () => {
         message.success('创建足迹成功');
       }
       setIsModalOpen(false);
+      setSelectedPhotoUrls([]);
       loadFootprints();
     } catch (error: any) {
       if (error?.errorFields) {
@@ -102,6 +164,28 @@ export default () => {
       }
       message.error(editingFootprint ? '更新足迹失败' : '创建足迹失败');
     }
+  };
+
+  // 打开选择照片弹窗
+  const handleOpenPhotoSelect = () => {
+    setIsPhotoSelectModalOpen(true);
+    loadAlbums();
+    // 初始化选中状态为当前表单中的图片URL
+    const currentImages = form.getFieldValue('images') || [];
+    setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages : []);
+    setPhotosPage(1);
+    setPhotoSearchKeyword('');
+  };
+
+  // 确认选择照片
+  const handleConfirmPhotoSelect = () => {
+    form.setFieldsValue({ images: selectedPhotoUrls });
+    setIsPhotoSelectModalOpen(false);
+  };
+
+  // 切换照片选中状态
+  const togglePhotoSelection = (photoUrl: string) => {
+    setSelectedPhotoUrls((prev) => (prev.includes(photoUrl) ? prev.filter((url) => url !== photoUrl) : [...prev, photoUrl]));
   };
 
   // 删除足迹
@@ -301,36 +385,112 @@ export default () => {
             <Input placeholder="请输入位置坐标（可选）" />
           </Form.Item>
           <Form.Item
-            label="图片URL列表"
+            label="图片"
             name="images"
-            extra="每行一个URL地址"
-            rules={[
-              {
-                validator: (_, value) => {
-                  if (!value) return Promise.resolve();
-                  const urls = value
-                    .split('\n')
-                    .map((url: string) => url.trim())
-                    .filter((url: string) => url);
-                  const invalidUrls = urls.filter((url: string) => {
-                    try {
-                      new URL(url);
-                      return false;
-                    } catch {
-                      return true;
-                    }
-                  });
-                  if (invalidUrls.length > 0) {
-                    return Promise.reject(new Error('请输入有效的URL地址'));
-                  }
-                  return Promise.resolve();
-                },
-              },
-            ]}
+            extra={
+              <div className="flex items-center justify-between mt-1">
+                <span>从相册中选择图片</span>
+                <Button type="link" size="small" onClick={handleOpenPhotoSelect}>
+                  选择图片
+                </Button>
+              </div>
+            }
           >
-            <TextArea rows={4} placeholder="请输入图片URL，每行一个（可选）" />
+            <div className="min-h-[100px] border border-dashed border-gray-300 rounded p-3">
+              {form.getFieldValue('images') && form.getFieldValue('images').length > 0 ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {(form.getFieldValue('images') || []).map((url: string, index: number) => (
+                    <div key={index} className="relative aspect-square rounded overflow-hidden">
+                      <Image src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-24 text-gray-400">暂无图片，点击"选择图片"按钮从相册中选择</div>
+              )}
+            </div>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 选择照片弹窗 */}
+      <Modal
+        title="从相册选择图片"
+        open={isPhotoSelectModalOpen}
+        onOk={handleConfirmPhotoSelect}
+        onCancel={() => {
+          setIsPhotoSelectModalOpen(false);
+          setSelectedPhotoUrls([]);
+          setPhotoSearchKeyword('');
+        }}
+        okText="确定"
+        cancelText="取消"
+        width={900}
+      >
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Select
+              placeholder="选择相册"
+              value={selectedAlbumId}
+              onChange={(value) => {
+                setSelectedAlbumId(value);
+                setPhotosPage(1);
+                setSelectedPhotoUrls([]);
+              }}
+              style={{ width: 300 }}
+              options={albums.map((album) => ({ label: album.name, value: album.id }))}
+            />
+            <div className="text-gray-600">已选择 {selectedPhotoUrls.length} 张图片</div>
+          </div>
+
+          {selectedAlbumId && (
+            <>
+              <Input placeholder="搜索照片名称" prefix={<AiOutlineSearch />} value={photoSearchKeyword} onChange={(e) => setPhotoSearchKeyword(e.target.value)} allowClear />
+
+              {photosLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Spin />
+                </div>
+              ) : photos.length === 0 ? (
+                <Empty description="该相册暂无照片" />
+              ) : (
+                <>
+                  <div className="grid grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
+                    {photos.map((photo) => {
+                      const isSelected = selectedPhotoUrls.includes(photo.url);
+                      return (
+                        <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(photo.url)}>
+                          <div className="h-32 rounded-lg overflow-hidden">
+                            <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                          </div>
+                          <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(photo.url)} />
+                          <div className={`p-2 bg-white text-xs truncate ${isSelected ? 'text-blue-500' : 'text-gray-700'}`}>{photo.name}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {photosTotal > photosLimit && (
+                    <div className="flex justify-center">
+                      <Pagination
+                        current={photosPage}
+                        pageSize={photosLimit}
+                        total={photosTotal}
+                        showSizeChanger
+                        showTotal={(total) => `共 ${total} 张`}
+                        pageSizeOptions={['12', '24', '48', '96']}
+                        onChange={(page, pageSize) => {
+                          setPhotosPage(page);
+                          setPhotosLimit(pageSize);
+                        }}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+          {!selectedAlbumId && <Empty description="请先选择相册" />}
+        </div>
       </Modal>
     </div>
   );
