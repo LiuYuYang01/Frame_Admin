@@ -4,6 +4,7 @@ import Home from '@/pages/home';
 import Login from '@/pages/login';
 import Albums from '@/pages/album';
 import AlbumDetail from '@/pages/album/detail';
+import Footprint from '@/pages/footprint';
 import Upload from '@/pages/upload';
 import { useUserStore } from '@/stores';
 
@@ -42,6 +43,7 @@ export default () => {
           <Route index element={<Home />} />
           <Route path="albums" element={<Albums />} />
           <Route path="albums/:id" element={<AlbumDetail />} />
+          <Route path="footprint" element={<Footprint />} />
           <Route path="upload" element={<Upload />} />
         </Route>
       </Routes>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiHome, FiFolder, FiUpload, FiMenu, FiX } from 'react-icons/fi';
+import { FiHome, FiFolder, FiUpload, FiMenu, FiX, FiMap } from 'react-icons/fi';
 import { Link, useLocation } from 'react-router';
 import { BiLeftIndent, BiRightIndent } from 'react-icons/bi';
 import LogoSvg from '@/assets/svg/logo.svg';
@@ -15,6 +15,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { id: 'home', label: '首页', icon: <FiHome />, path: '/' },
   { id: 'albums', label: '相册管理', icon: <FiFolder />, path: '/albums' },
+  { id: 'footprint', label: '足迹管理', icon: <FiMap />, path: '/footprint' },
   { id: 'upload', label: '上传图片', icon: <FiUpload />, path: '/upload' },
 ];
 

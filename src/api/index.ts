@@ -3,3 +3,4 @@ export { getAlbumListAPI, updateAlbumAPI, deleteAlbumAPI, addPhotosToAlbumAPI, r
 export { createPhotoAPI, getPhotoDetailAPI, updatePhotoAPI, deletePhotoAPI } from './photo';
 export { uploadFileAPI } from './upload';
 export { getStatisAPI } from './statis';
+export { createFootprintAPI, getFootprintListAPI, getFootprintDetailAPI, updateFootprintAPI, deleteFootprintAPI } from './footprint';

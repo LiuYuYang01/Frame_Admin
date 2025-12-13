@@ -568,7 +568,7 @@ export default () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">照片描述</label>
-            <Input placeholder="请输入照片描述" value={editPhotoDescription} onChange={(e) => setEditPhotoDescription(e.target.value)} onPressEnter={handleUpdatePhoto} />
+            <Input.TextArea placeholder="请输入照片描述" value={editPhotoDescription} onChange={(e) => setEditPhotoDescription(e.target.value)} onPressEnter={handleUpdatePhoto} autoSize={{ minRows: 2, maxRows: 6 }} />
           </div>
         </div>
       </Modal>
