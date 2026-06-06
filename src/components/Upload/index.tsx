@@ -6,6 +6,7 @@ import { uploadFileAPI, chunkUploadAPI, getUploadProgressAPI, cancelUploadAPI } 
 import { calculateFileHash } from '@/utils/hash';
 import { formatFileSize } from '@/utils/formatSize';
 import type { FileUploadTask } from '@/types/upload';
+import { compressImage } from '@/utils/compressImage';
 
 const { Dragger } = Upload;
 
@@ -23,7 +24,7 @@ const qualityOptions = [
 ];
 
 const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
-  const [quality, setQuality] = useState<number>(100);
+  const [quality, setQuality] = useState<number>(80);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -247,40 +248,36 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
       setUploadTasks(new Map());
 
       const originalFiles = fileList.map((file) => file.originFileObj as File);
-      let filesToUpload: File[] = [];
+      let filesToUpload: File[] = originalFiles;
 
-      // 压缩图片（如果需要）
-      if (quality < 100) {
-        message.loading({ content: '正在压缩图片...', key: 'compressing', duration: 0 });
+      message.loading({ content: '正在处理图片...', key: 'compressing', duration: 0 });
 
-        try {
-          const compressPromises = originalFiles.map(async (file, index) => {
-            try {
-              const compressed = await compressImage(file, quality);
-              const progress = Math.floor(((index + 1) / originalFiles.length) * 30);
-              setUploadProgress(progress);
-              return compressed;
-            } catch (error) {
-              console.error(`压缩 ${file.name} 失败:`, error);
-              return file;
-            }
-          });
+      try {
+        const compressPromises = originalFiles.map(async (file, index) => {
+          try {
+            const compressed = await compressImage(file, { quality });
+            const progress = Math.floor(((index + 1) / originalFiles.length) * 30);
+            setUploadProgress(progress);
+            return compressed;
+          } catch (error) {
+            console.error(`处理 ${file.name} 失败:`, error);
+            return file;
+          }
+        });
 
-          filesToUpload = await Promise.all(compressPromises);
+        filesToUpload = await Promise.all(compressPromises);
 
-          const originalSize = originalFiles.reduce((acc, file) => acc + file.size, 0);
-          const compressedSize = filesToUpload.reduce((acc, file) => acc + file.size, 0);
+        const originalSize = originalFiles.reduce((acc, file) => acc + file.size, 0);
+        const compressedSize = filesToUpload.reduce((acc, file) => acc + file.size, 0);
+        if (compressedSize < originalSize) {
           const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-
-          message.destroy('compressing');
-          message.success(`图片压缩完成，压缩率: ${ratio}%`);
-        } catch {
-          message.destroy('compressing');
-          message.warning('部分图片压缩失败，将使用原图上传');
-          filesToUpload = originalFiles;
+          message.success(`图片处理完成，体积减少 ${ratio}%`);
         }
-      } else {
+      } catch {
+        message.warning('部分图片处理失败，将使用原图上传');
         filesToUpload = originalFiles;
+      } finally {
+        message.destroy('compressing');
       }
 
       // 并行上传所有文件
@@ -305,63 +302,6 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
     } finally {
       setUploading(false);
     }
-  };
-
-  const compressImage = (file: File, qualityValue: number): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      if (qualityValue === 100) {
-        resolve(file);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-
-      reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.src = e.target?.result as string;
-
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            reject(new Error('无法获取 canvas context'));
-            return;
-          }
-
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('图片压缩失败'));
-                return;
-              }
-
-              const compressedFile = new File([blob], file.name, {
-                type: file.type || 'image/jpeg',
-                lastModified: Date.now(),
-              });
-
-              resolve(compressedFile);
-            },
-            file.type || 'image/jpeg',
-            qualityValue / 100
-          );
-        };
-
-        img.onerror = () => {
-          reject(new Error('图片加载失败'));
-        };
-      };
-
-      reader.onerror = () => {
-        reject(new Error('文件读取失败'));
-      };
-    });
   };
 
   return (

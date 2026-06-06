@@ -7,12 +7,8 @@ import { getAlbumListAPI, createAlbumAPI, updateAlbumAPI, deleteAlbumAPI } from 
 import type { Album, CreateAlbumParams, UpdateAlbumParams } from '@/types/album';
 import type { MenuProps } from 'antd';
 import FileSvg from '@/assets/svg/file.svg';
-import { buildImageView2Url } from '@/utils/image';
-
+import { getCoverImageUrl } from '@/utils/image';
 const { TextArea } = Input;
-
-/** 封面卡片展示尺寸（2x 屏约 300px 宽，缩略图 400 足够清晰） */
-const COVER_THUMB_SIZE = 400;
 
 export default () => {
   const navigate = useNavigate();
@@ -26,7 +22,7 @@ export default () => {
   const loadAlbums = async () => {
     try {
       setLoading(true);
-      const { data } = await getAlbumListAPI({ limit: 9999 });
+      const { data } = await getAlbumListAPI({ limit: 9999, scene: 'cover' });
       setAlbums(data.result);
     } catch {
       message.error('加载相册列表失败');
@@ -224,7 +220,7 @@ export default () => {
                         {album.cover ? (
                           <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-shadow">
                             <img
-                              src={buildImageView2Url(album.cover, COVER_THUMB_SIZE, COVER_THUMB_SIZE)}
+                              src={getCoverImageUrl(album.cover)}
                               alt={album.name}
                               loading="lazy"
                               decoding="async"

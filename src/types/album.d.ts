@@ -7,6 +7,7 @@ export interface Album {
   name: string;
   description?: string;
   cover?: string;
+  original_cover?: string;
   create_time: string;
   photos?: Photo[];
   photo_count?: number;
@@ -25,8 +26,11 @@ export interface UpdateAlbumParams {
 }
 
 export interface QueryAlbumParams extends FilterParams {
+  scene?: 'thumb' | 'grid' | 'preview' | 'cover' | 'placeholder';
   width?: number;
   height?: number;
+  quality?: number;
+  format?: 'webp' | 'jpg' | 'png' | 'avif';
   keyword?: string;
 }
 

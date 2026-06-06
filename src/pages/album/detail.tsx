@@ -8,7 +8,7 @@ import type { Photo } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
 import { formatFileSize } from '@/utils/formatSize';
-import { getOriginalImageUrl } from '@/utils/image';
+import { getThumbImageUrl, getPreviewImageUrl } from '@/utils/image';
 
 export default () => {
   const { id } = useParams<{ id: string }>();
@@ -42,7 +42,7 @@ export default () => {
     if (!id) return;
     try {
       setLoading(true);
-      const { data } = await getAlbumPhotosAPI(Number(id), { page, limit, width: 300, height: 300 });
+      const { data } = await getAlbumPhotosAPI(Number(id), { page, limit, scene: 'thumb' });
       setPhotos(data.result);
       setPhotosTotal(data.total);
     } catch {
@@ -60,8 +60,7 @@ export default () => {
       const { data } = await getPhotosExcludeFromAlbumAPI(Number(id), {
         page,
         limit,
-        width: 390,
-        height: 256,
+        scene: 'thumb',
         keyword: debouncedKeyword || undefined,
       });
       setAvailablePhotos(data.result);
@@ -275,14 +274,6 @@ export default () => {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-2">
       {/* 照片网格 */}
@@ -302,7 +293,13 @@ export default () => {
           }
           className="[&_.ant-card-body]:min-h-[calc(100vh-180px)]"
         >
-          {photos.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+              {Array.from({ length: photosLimit }).map((_, index) => (
+                <div key={index} className="aspect-square rounded-lg bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : photos.length === 0 ? (
             <Empty
               description={
                 <span>
@@ -395,8 +392,10 @@ export default () => {
                       >
                         <div className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-md transition-all duration-300 ${isBulkSelectMode && isSelected ? 'ring-4 ring-blue-500' : 'hover:shadow-xl'}`}>
                           <Image
-                            src={photo.url}
+                            src={getThumbImageUrl(photo.url, photo.original_url)}
                             alt={photo.name}
+                            loading="lazy"
+                            decoding="async"
                             className="!absolute !inset-0 !w-full !h-full !object-cover"
                             wrapperClassName="!absolute !inset-0 !w-full !h-full"
                             preview={
@@ -404,7 +403,7 @@ export default () => {
                                 ? false
                                 : {
                                     mask: <div className="text-white">预览</div>,
-                                    src: getOriginalImageUrl(photo.url),
+                                    src: getPreviewImageUrl(photo.url, photo.original_url),
                                   }
                             }
                           />
@@ -505,7 +504,7 @@ export default () => {
                     }}
                   >
                     <div className="h-32 rounded-lg overflow-hidden">
-                      <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                      <img src={getThumbImageUrl(photo.url, photo.original_url)} alt={photo.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </div>
 
                     <Checkbox
