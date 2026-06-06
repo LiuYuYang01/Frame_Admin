@@ -14,19 +14,16 @@ export default () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [albums, setAlbums] = useState<Album[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10 });
 
   // 加载相册列表
   const loadAlbums = async () => {
     try {
       setLoading(true);
-      const { data } = await getAlbumListAPI(pagination);
+      const { data } = await getAlbumListAPI({ limit: 9999 });
       setAlbums(data.result);
-      setTotal(data.total);
     } catch {
       message.error('加载相册列表失败');
     } finally {
@@ -36,7 +33,7 @@ export default () => {
 
   useEffect(() => {
     loadAlbums();
-  }, [pagination]);
+  }, []);
 
   // 打开创建/编辑弹窗
   const handleOpenModal = (album?: Album) => {
@@ -253,21 +250,6 @@ export default () => {
                 </Tooltip>
               ))}
             </div>
-
-            {/* 分页 */}
-            {total > pagination.limit && (
-              <div className="flex justify-center mt-8">
-                <Button disabled={pagination.page === 1} onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}>
-                  上一页
-                </Button>
-                <span className="mx-4 flex items-center">
-                  第 {pagination.page} / {Math.ceil(total / pagination.limit)} 页，共 {total} 个相册
-                </span>
-                <Button disabled={pagination.page >= Math.ceil(total / pagination.limit)} onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}>
-                  下一页
-                </Button>
-              </div>
-            )}
           </>
         )}
       </Card>
