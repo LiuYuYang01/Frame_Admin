@@ -5,6 +5,6 @@ export interface SetupFormProps {
   onSaved: () => void;
 }
 
-export type SetupEnvName = 'baidu_statis';
+export type SetupEnvName = 'baidu_statis' | 'qiniu_storage';
 
-export const SETUP_ENV_NAMES: SetupEnvName[] = ['baidu_statis'];
+export const SETUP_ENV_NAMES: SetupEnvName[] = ['baidu_statis', 'qiniu_storage'];

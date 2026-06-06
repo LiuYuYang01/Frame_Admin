@@ -12,6 +12,14 @@ export interface BaiduStatisEnvValue {
   access_token: string;
 }
 
+export interface QiniuStorageEnvValue {
+  access_key: string;
+  secret_key: string;
+  domain: string;
+  bucket_name: string;
+  zone: string;
+}
+
 export const getEnvConfigDataAPI = (name: string) => {
   return request<EnvConfigItem>('GET', `/env_config/name/${name}`);
 };
