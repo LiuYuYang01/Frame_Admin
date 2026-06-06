@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
 import { FiHome, FiFolder, FiMap, FiUpload, FiSettings } from 'react-icons/fi';
 import { useUserStore } from '@/stores';
@@ -6,6 +6,7 @@ import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { BiUser, BiLogOut } from 'react-icons/bi';
 import LogoSvg from '@/assets/svg/logo.svg';
+import ProfileModal from '../ProfileModal';
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -30,6 +31,7 @@ export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const location = useLocation();
   const { pathname } = location;
   const { user, quitLogin } = useUserStore();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const trigger = useRef<HTMLButtonElement>(null);
   const sidebar = useRef<HTMLDivElement>(null);
@@ -66,6 +68,10 @@ export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/' || pathname === '';
     return pathname === path || pathname.startsWith(`${path}/`);
+  };
+
+  const onDropdownClick: MenuProps['onClick'] = ({ key }) => {
+    if (key === 'profile') setProfileOpen(true);
   };
 
   // UserCard 下拉菜单
@@ -134,7 +140,7 @@ export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
       {/* 底部用户信息卡片 */}
       <div className="p-2">
-        <Dropdown menu={{ items: dropdownItems }} placement="topRight" trigger={['click']}>
+        <Dropdown menu={{ items: dropdownItems, onClick: onDropdownClick }} placement="topRight" trigger={['click']}>
           <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors bg-white/60 dark:bg-[#313D4A] backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-[#3d4b5c]">
             {user?.avatar ? (
               <img
@@ -165,6 +171,8 @@ export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           </div>
         </Dropdown>
       </div>
+
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </aside>
   );
 };

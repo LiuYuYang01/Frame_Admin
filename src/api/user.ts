@@ -1,5 +1,5 @@
 import request from '@/utils/request';
-import type { LoginParams, LoginResponse } from '@/types/user';
+import type { LoginParams, LoginResponse, UpdateProfileParams, UserInfo } from '@/types/user';
 
 /**
  * 管理员登录
@@ -8,6 +8,15 @@ import type { LoginParams, LoginResponse } from '@/types/user';
  */
 export const loginAPI = (params: LoginParams) => {
   return request<LoginResponse>('POST', '/user/login', {
+    data: params,
+  });
+};
+
+/**
+ * 更新个人资料
+ */
+export const updateProfileAPI = (params: UpdateProfileParams) => {
+  return request<UserInfo>('PATCH', '/user/profile', {
     data: params,
   });
 };
