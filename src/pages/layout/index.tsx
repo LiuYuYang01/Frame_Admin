@@ -1,24 +1,39 @@
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import { useConfigStore } from '@/stores';
 
 export default () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const colorMode = useConfigStore((state) => state.colorMode);
+
+  useEffect(() => {
+    const className = 'dark';
+    const bodyClass = window.document.body.classList;
+
+    if (colorMode === 'dark') {
+      bodyClass.add(className);
+    } else {
+      bodyClass.remove(className);
+    }
+  }, [colorMode]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 relative overflow-hidden">
-      {/* 装饰性背景元素 */}
-      <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-green-200/20 to-blue-200/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
-      
-      <Sidebar />
-      
-      {/* 主内容区域 */}
-      <main className="lg:ml-64 min-h-screen transition-all duration-300 relative z-10">
-        <Header />
-        
-        <div className="p-4 lg:p-8">
-          <Outlet />
+    <div className="dark:bg-[#1A222C] dark:text-[#AEB7C0]">
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
+          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+
+          <main className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 w-full max-w-full flex-1 flex-col p-4">
+              <Outlet />
+            </div>
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic } from 'antd';
-import { motion } from 'framer-motion';
-import { AiOutlineFolderOpen, AiOutlinePicture, AiOutlineUpload, AiOutlineArrowRight, AiOutlineCloudServer } from 'react-icons/ai';
 import { useNavigate } from 'react-router';
+import { AiOutlineFolderOpen, AiOutlinePicture, AiOutlineCloudServer, AiOutlineUpload, AiOutlineArrowRight } from 'react-icons/ai';
+import { DoubleRightOutlined } from '@ant-design/icons';
 import { getStatisAPI } from '@/api/statis';
 import type { StatisData } from '@/types/statis';
+import { useUserStore } from '@/stores';
 
 export default () => {
   const navigate = useNavigate();
+  const { user } = useUserStore();
   const [stats, setStats] = useState<StatisData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,189 +30,126 @@ export default () => {
     {
       title: '上传照片',
       description: '将照片上传到相册',
-      icon: <AiOutlineUpload />,
+      icon: <AiOutlineUpload className="text-2xl" />,
       path: '/upload',
-      gradient: 'from-blue-500 to-blue-600',
-      bgGradient: 'from-blue-50 to-blue-100',
-      iconColor: 'text-blue-600',
-      hoverShadow: 'hover:shadow-blue-200',
+      color: '#3b82f6',
+      bgColor: 'bg-[#e7f2fe] dark:bg-[#4e5969]',
     },
     {
       title: '管理相册',
       description: '创建和管理相册',
-      icon: <AiOutlineFolderOpen />,
+      icon: <AiOutlineFolderOpen className="text-2xl" />,
       path: '/albums',
-      gradient: 'from-green-500 to-emerald-600',
-      bgGradient: 'from-green-50 to-green-100',
-      iconColor: 'text-green-600',
-      hoverShadow: 'hover:shadow-green-200',
+      color: '#22c55e',
+      bgColor: 'bg-[#e7f8ee] dark:bg-[#4e5969]',
     },
     {
-      title: '浏览照片',
-      description: '查看和管理照片',
-      icon: <AiOutlinePicture />,
-      path: '/photos',
-      gradient: 'from-purple-500 to-purple-600',
-      bgGradient: 'from-purple-50 to-purple-100',
-      iconColor: 'text-purple-600',
-      hoverShadow: 'hover:shadow-purple-200',
+      title: '查看足迹',
+      description: '浏览和管理足迹',
+      icon: <AiOutlinePicture className="text-2xl" />,
+      path: '/footprint',
+      color: '#a855f7',
+      bgColor: 'bg-[#f3e8ff] dark:bg-[#4e5969]',
     },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: 'spring' as const, stiffness: 100 },
-    },
-  };
-
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-      {/* 统计卡片 - 添加渐变背景和动画效果 */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={8}>
-          <motion.div variants={itemVariants}>
-            <Card loading={loading} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-10 translate-x-1/3 -translate-y-1/3" />
+    <div>
+      {/* 欢迎横幅 */}
+      <div className="bg-primary rounded-xl p-6 sm:p-10 flex flex-col justify-center h-[170px] relative overflow-hidden mb-3">
+        <div
+          className="absolute right-[-60px] top-[-40px] w-[300px] h-[300px] bg-blue-300 opacity-40 z-0"
+          style={{
+            borderRadius: '60% 40% 60% 40% / 60% 60% 40% 40%',
+          }}
+        />
 
-              <div className="relative z-10 flex items-center justify-between">
-                <Statistic
-                  title={<span className="text-gray-600 font-medium text-base">相册总数</span>}
-                  value={stats?.album.count || 0}
-                  valueStyle={{
-                    color: '#00C27C',
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                  }}
-                  suffix={<span className="text-xl text-gray-500">个</span>}
-                />
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-200 group-hover:scale-110 transition-transform">
-                  <AiOutlineFolderOpen className="text-white text-4xl" />
-                </div>
+        <div className="relative z-10">
+          <h1 className="text-white text-xl font-bold sm:text-2xl mb-4">
+            欢迎使用 Frame 图片管理系统
+          </h1>
+
+          <button
+            className="bg-white text-blue-400 font-bold py-1 px-4 rounded-sm transition-transform hover:scale-105 cursor-pointer flex items-center gap-1"
+            onClick={() => navigate('/upload')}
+          >
+            去上传 <DoubleRightOutlined />
+          </button>
+        </div>
+      </div>
+
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-4">
+        <div className="rounded-xl border border-stroke py-6 px-7 shadow-default dark:border-transparent bg-light-gradient dark:bg-dark-gradient">
+          <h3 className="text-sm text-slate-700 dark:text-white">相册总数</h3>
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-2xl my-2 text-black dark:text-white">
+              {loading ? '-' : stats?.album.count || 0}
+            </h4>
+            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#e7f2fe] dark:bg-[#4e5969]">
+              <AiOutlineFolderOpen className="text-xl text-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-stroke py-6 px-7 shadow-default dark:border-transparent bg-light-gradient dark:bg-dark-gradient">
+          <h3 className="text-sm text-slate-700 dark:text-white">照片总数</h3>
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-2xl my-2 text-black dark:text-white">
+              {loading ? '-' : stats?.photo.count || 0}
+            </h4>
+            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#e7f8ee] dark:bg-[#4e5969]">
+              <AiOutlinePicture className="text-xl text-green-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-stroke py-6 px-7 shadow-default dark:border-transparent bg-light-gradient dark:bg-dark-gradient">
+          <h3 className="text-sm text-slate-700 dark:text-white">照片总大小</h3>
+          <div className="flex items-center justify-between">
+            <h4 className="font-bold text-2xl my-2 text-black dark:text-white">
+              {loading ? '-' : stats?.photo.totalSizeFormatted || '0 B'}
+            </h4>
+            <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#f3e8ff] dark:bg-[#4e5969]">
+              <AiOutlineCloudServer className="text-xl text-purple-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 快捷操作 */}
+      <div className="px-3 mb-4">
+        <div className="overflow-auto flex justify-between items-center">
+          <h2 className="font-semibold text-black dark:text-white text-xl min-w-24">快捷操作</h2>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {quickActions.map((action) => (
+          <div
+            key={action.path}
+            onClick={() => navigate(action.path)}
+            className="rounded-xl border border-stroke py-6 px-7 shadow-default dark:border-transparent bg-light-gradient dark:bg-dark-gradient cursor-pointer hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-md ${action.bgColor}`}
+                style={{ color: action.color }}
+              >
+                {action.icon}
               </div>
-            </Card>
-          </motion.div>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <motion.div variants={itemVariants}>
-            <Card loading={loading} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-10 translate-x-1/3 -translate-y-1/3" />
-
-              <div className="relative z-10 flex items-center justify-between">
-                <Statistic
-                  title={<span className="text-gray-600 font-medium text-base">照片总数</span>}
-                  value={stats?.photo.count || 0}
-                  valueStyle={{
-                    color: '#1890ff',
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                  }}
-                  suffix={<span className="text-xl text-gray-500">张</span>}
-                />
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
-                  <AiOutlinePicture className="text-white text-4xl" />
-                </div>
+              <div>
+                <h3 className="font-semibold text-black dark:text-white">{action.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{action.description}</p>
               </div>
-            </Card>
-          </motion.div>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <motion.div variants={itemVariants}>
-            <Card loading={loading} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-10 translate-x-1/3 -translate-y-1/3" />
-
-              <div className="relative z-10 flex items-center justify-between">
-                <Statistic
-                  title={<span className="text-gray-600 font-medium text-base">照片总大小</span>}
-                  value={stats?.photo.totalSizeFormatted || '0 B'}
-                  valueStyle={{
-                    color: '#722ed1',
-                    fontSize: '2rem',
-                    fontWeight: 'bold',
-                  }}
-                />
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-200 group-hover:scale-110 transition-transform">
-                  <AiOutlineCloudServer className="text-white text-4xl" />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </Col>
-      </Row>
-
-      {/* 快捷操作 - 重新设计卡片 */}
-      <Row gutter={[16, 16]}>
-        {quickActions.map((action, index) => (
-          <Col xs={24} sm={12} lg={8} key={action.path}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + index * 0.1 }}
-              whileHover={{ y: -8, transition: { duration: 0.2 } }}
-              onClick={() => navigate(action.path)}
-              className={`
-                    relative overflow-hidden rounded-2xl cursor-pointer group
-                    bg-gradient-to-br ${action.bgGradient}
-                    border-2 border-transparent hover:border-white
-                    shadow-md ${action.hoverShadow} hover:shadow-2xl
-                    transition-all duration-300
-                  `}
-            >
-              {/* 装饰性光效 */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full blur-2xl opacity-0 group-hover:opacity-30 transition-opacity -translate-y-1/2 translate-x-1/2" />
-
-              <div className="relative z-10 p-8">
-                {/* 图标容器 */}
-                <motion.div
-                  className={`
-                        w-16 h-16 rounded-2xl bg-gradient-to-br ${action.gradient}
-                        flex items-center justify-center mb-6
-                        shadow-lg group-hover:shadow-xl
-                        group-hover:scale-110 transition-transform duration-300
-                      `}
-                  whileHover={{ rotate: [0, -10, 10, -10, 0] }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <span className="text-white text-3xl">{action.icon}</span>
-                </motion.div>
-
-                {/* 文本内容 */}
-                <h3 className="text-xl font-bold mb-2 text-gray-800 group-hover:text-gray-900">{action.title}</h3>
-                <p className="text-gray-600 mb-6 text-sm">{action.description}</p>
-
-                {/* 按钮 */}
-                <motion.div
-                  whileHover={{ x: 5 }}
-                  className={`
-                        inline-flex items-center gap-2 px-4 py-2 rounded-xl
-                        bg-white shadow-md
-                        ${action.iconColor} font-medium
-                        group-hover:shadow-lg transition-all
-                      `}
-                >
-                  <span>前往</span>
-                  <AiOutlineArrowRight className="text-lg" />
-                </motion.div>
-              </div>
-
-              {/* 底部装饰条 */}
-              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${action.gradient}`} />
-            </motion.div>
-          </Col>
+            </div>
+            <div className="flex items-center gap-1 text-sm text-primary group-hover:gap-2 transition-all">
+              <span>前往</span>
+              <AiOutlineArrowRight />
+            </div>
+          </div>
         ))}
-      </Row>
-    </motion.div>
+      </div>
+    </div>
   );
 };

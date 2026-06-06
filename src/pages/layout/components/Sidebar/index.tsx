@@ -1,131 +1,171 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FiHome, FiFolder, FiUpload, FiMenu, FiX, FiMap } from 'react-icons/fi';
-import { Link, useLocation } from 'react-router';
-import { BiLeftIndent, BiRightIndent } from 'react-icons/bi';
+import { useEffect, useRef } from 'react';
+import { NavLink, useLocation } from 'react-router';
+import { FiHome, FiFolder, FiMap, FiUpload } from 'react-icons/fi';
+import { useUserStore } from '@/stores';
+import { Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { BiUser, BiLogOut } from 'react-icons/bi';
 import LogoSvg from '@/assets/svg/logo.svg';
 
+interface SidebarProps {
+  sidebarOpen: boolean;
+  setSidebarOpen: (arg: boolean) => void;
+}
+
 interface MenuItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
   path: string;
+  name: string;
+  icon: React.ReactNode;
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'home', label: '首页', icon: <FiHome />, path: '/' },
-  { id: 'albums', label: '相册管理', icon: <FiFolder />, path: '/albums' },
-  { id: 'footprint', label: '足迹管理', icon: <FiMap />, path: '/footprint' },
-  { id: 'upload', label: '上传图片', icon: <FiUpload />, path: '/upload' },
+  { path: '/', name: '首页', icon: <FiHome className="text-lg" /> },
+  { path: '/albums', name: '相册管理', icon: <FiFolder className="text-lg" /> },
+  { path: '/footprint', name: '足迹管理', icon: <FiMap className="text-lg" /> },
+  { path: '/upload', name: '上传图片', icon: <FiUpload className="text-lg" /> },
 ];
 
-export default () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const location = useLocation();
+  const { pathname } = location;
+  const { user, quitLogin } = useUserStore();
 
-  const sidebarVariants = {
-    expanded: { width: '16rem' },
-    collapsed: { width: '5rem' },
+  const trigger = useRef<HTMLButtonElement>(null);
+  const sidebar = useRef<HTMLDivElement>(null);
+
+  // 点击侧边栏外部时关闭侧边栏
+  useEffect(() => {
+    const clickHandler = ({ target }: MouseEvent) => {
+      if (!sidebar.current || !trigger.current) return;
+      if (!sidebarOpen || sidebar.current.contains(target as Node) || trigger.current.contains(target as Node)) return;
+      setSidebarOpen(false);
+    };
+    document.addEventListener('click', clickHandler);
+    return () => document.removeEventListener('click', clickHandler);
+  });
+
+  // 按 ESC 键关闭侧边栏
+  useEffect(() => {
+    const keyHandler = ({ keyCode }: KeyboardEvent) => {
+      if (!sidebarOpen || keyCode !== 27) return;
+      setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', keyHandler);
+    return () => document.removeEventListener('keydown', keyHandler);
+  });
+
+  // 导航项样式
+  const sidebarItemBase =
+    'group relative flex items-center gap-1 py-2 px-4 duration-300 ease-in-out hover:bg-[rgba(241,241,244,0.9)] dark:hover:bg-[#313D4A] rounded-md hover:backdrop-blur-[15px] hover:text-primary! dark:hover:text-primary!';
+  const sidebarTextIdle = 'text-[#444]! dark:text-slate-200!';
+  const sidebarTextActive = 'text-primary! dark:text-primary! dark:bg-[#313D4A]';
+  const sidebarItemClass = (active: boolean) =>
+    sidebarItemBase + ' ' + (active ? sidebarTextActive : sidebarTextIdle);
+
+  const isActive = (path: string) => {
+    if (path === '/') return pathname === '/' || pathname === '';
+    return pathname === path || pathname.startsWith(`${path}/`);
   };
 
-  const linkVariants = {
-    hover: {
-      scale: 1.02,
-      x: 4,
-      transition: { type: 'spring' as const, stiffness: 400, damping: 10 },
+  // UserCard 下拉菜单
+  const dropdownItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      label: (
+        <span className="flex items-center gap-2">
+          <BiUser className="text-lg" />
+          个人中心
+        </span>
+      ),
     },
-  };
+    { type: 'divider' },
+    {
+      key: 'logout',
+      label: (
+        <button className="flex items-center gap-2 w-full cursor-pointer" onClick={quitLogin}>
+          <BiLogOut className="text-lg" />
+          退出登录
+        </button>
+      ),
+    },
+  ];
 
   return (
-    <>
-      {/* 移动端菜单按钮 */}
-      <button onClick={() => setIsMobileOpen(!isMobileOpen)} className="fixed top-2 left-4 z-50 p-2 rounded-lg border bg-white shadow-lg lg:hidden hover:bg-gray-50 transition-colors cursor-pointer">
-        {isMobileOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-      </button>
+    <aside
+      ref={sidebar}
+      className={`absolute z-999 flex h-[calc(100vh-0.9rem)] xs:h-[calc(100vh-1.6rem)] w-56 xs:mt-2.5 xs:ml-2.5 flex-col overflow-y-hidden rounded-2xl duration-300 ease-linear lg:static lg:translate-x-0
+        ${sidebarOpen ? 'left-1 top-1.5 xs:left-2 xs:top-2 translate-x-0' : '-left-56 -top-1.5 xs:-left-56 xs:-top-2 -translate-x-full'}
+        bg-light-gradient dark:bg-dark-gradient border border-gray-200/50 dark:border-gray-800 transition-all duration-300 backdrop-blur-2xl shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.06)] dark:shadow-[0px_0px_0px_0px_rgba(0,0,0,0)]`}
+    >
+      {/* Logo 和标题区域 */}
+      <div className="flex justify-center items-center gap-2 px-6 py-5 pb-0">
+        <NavLink to="/" className="flex items-center font-medium text-[#555]! dark:text-white!">
+          <img src={LogoSvg} alt="logo" className="w-8 mr-2.5" />
+          <div className="flex flex-col">
+            <span>Frame</span>
+            <span className="text-[10px] text-gray-500">图片管理系统</span>
+          </div>
+        </NavLink>
 
-      {/* 移动端遮罩层 */}
-      {isMobileOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileOpen(false)} className="fixed inset-0 bg-black/50 z-40 lg:hidden" />}
+        {/* 移动端侧边栏触发器按钮 */}
+        <button ref={trigger} onClick={() => setSidebarOpen(!sidebarOpen)} aria-controls="sidebar" aria-expanded={sidebarOpen} className="block lg:hidden" />
+      </div>
 
-      {/* 侧边栏 */}
-      <motion.aside
-        initial={false}
-        animate={isCollapsed ? 'collapsed' : 'expanded'}
-        variants={sidebarVariants}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className={`
-          fixed left-0 top-0 h-screen border-r bg-gradient-to-b from-white to-gray-50 
-          shadow-xl z-40 flex flex-col
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 transition-transform lg:transition-none
-        `}
-      >
-        {/* Logo 区域 */}
-        <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-4 border-b border-gray-200`}>
-          <span></span>
+      {/* 导航菜单区域 */}
+      <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear flex-1">
+        <nav className="pt-2 pb-4 px-2">
+          <h3 className="mb-4 ml-4 text-sm font-semibold text-primary">导航</h3>
 
-          {!isCollapsed && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <img src={LogoSvg} alt="" className="w-10" />
-            </motion.div>
-          )}
-
-          {/* 折叠按钮 - 仅桌面端显示 */}
-          <button onClick={() => setIsCollapsed(!isCollapsed)} className="hidden lg:block p-2 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
-            {isCollapsed ? <BiRightIndent size={20} /> : <BiLeftIndent size={20} />}
-          </button>
-        </div>
-
-        {/* 导航菜单 */}
-        <nav className="flex-1 overflow-y-auto py-6 px-3">
-          <ul className="space-y-2">
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-
-              return (
-                <motion.li key={item.id} variants={linkVariants} whileHover="hover">
-                  <Link
-                    to={item.path}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-xl
-                      transition-all duration-200 group relative overflow-hidden
-                      ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-gray-700 hover:bg-gray-100'}
-                    `}
-                  >
-                    {/* 图标 */}
-                    <span className={`text-xl ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-primary'}`}>{item.icon}</span>
-
-                    {/* 文字 */}
-                    {!isCollapsed && (
-                      <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="font-medium whitespace-nowrap">
-                        {item.label}
-                      </motion.span>
-                    )}
-
-                    {/* 活动指示器 */}
-                    {!isCollapsed && isActive && <motion.div layoutId="activeIndicator" className={`absolute right-2 w-2.5 h-2.5 mr-2.5 bg-white rounded-full`} initial={false} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />}
-                  </Link>
-                </motion.li>
-              );
-            })}
+          <ul className="mb-6 flex flex-col gap-1.5">
+            {menuItems.map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  className={sidebarItemClass(isActive(item.path))}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  {item.icon}
+                  {item.name}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
+      </div>
 
-        {/* 底部用户信息 */}
-        {/* {!isCollapsed && (
-          <div className="p-4 border-t border-gray-200">
-            <div className={`flex items-center gap-3 p-3 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer`}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-semibold">A</div>
-
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-800 truncate">Admin</p>
-                <p className="text-xs text-gray-500 truncate">admin@frame.com</p>
-              </motion.div>
+      {/* 底部用户信息卡片 */}
+      <div className="p-2">
+        <Dropdown menu={{ items: dropdownItems }} placement="topRight" trigger={['click']}>
+          <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors bg-white/60 dark:bg-[#313D4A] backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-[#3d4b5c]">
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user?.name || 'avatar'}
+                className="w-10 h-10 rounded-full shrink-0 object-cover"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-lg shrink-0">
+                {user?.name?.charAt(0) || 'F'}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold truncate text-[#444] dark:text-white">
+                {user?.name || user?.username || '未命名'}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                管理员
+              </div>
+            </div>
+            <div className="p-2 rounded-md transition-colors hover:bg-black/5 dark:hover:bg-white/10">
+              <svg className="shrink-0 w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="4" r="1.5" />
+                <circle cx="10" cy="10" r="1.5" />
+                <circle cx="10" cy="16" r="1.5" />
+              </svg>
             </div>
           </div>
-        )} */}
-      </motion.aside>
-    </>
+        </Dropdown>
+      </div>
+    </aside>
   );
 };

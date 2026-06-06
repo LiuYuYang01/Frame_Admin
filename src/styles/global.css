@@ -4,6 +4,46 @@
 @source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --breakpoint-xs: 480px;
+  --color-stroke: #e2e8f0;
+  --color-black: #1c2434;
+  --color-black-2: #010101;
+  --color-primary: #60a5fa;
+  --color-boxdark: #334459;
+  --color-boxdark-2: #263444;
+  --color-strokedark: #475f7d;
+
+  --shadow-default: 0px 8px 13px -3px rgba(0, 0, 0, 0.07);
+
+  --background-image-light-gradient:
+    radial-gradient(
+      at 13.81% 36.55%,
+      hsla(33, 100%, 98%, 1) 0%,
+      hsla(33, 100%, 98%, 0) 100%
+    ),
+    radial-gradient(
+      at 26.76% 14.56%,
+      hsla(202, 100%, 94%, 1) 0%,
+      hsla(202, 100%, 94%, 0) 100%
+    ),
+    radial-gradient(
+      at 71.81% 73.36%,
+      hsla(202, 100%, 94%, 1) 0%,
+      hsla(202, 100%, 94%, 0) 100%
+    ),
+    radial-gradient(
+      at 80.68% 77.37%,
+      hsla(33, 100%, 98%, 1) 0%,
+      hsla(33, 100%, 98%, 0) 100%
+    );
+  --background-image-dark-gradient: radial-gradient(
+    at 50% 50%,
+    hsla(210, 29%, 27%, 0.8) 0%,
+    hsla(210, 29%, 27%, 0) 100%
+  );
+}
+
 @layer base {
   *,
   ::after,
@@ -13,12 +53,17 @@
     border-color: var(--color-gray-200, currentColor);
   }
 
-  /* 平滑滚动 */
   html {
     scroll-behavior: smooth;
   }
 
   body {
+    position: relative;
+    z-index: 10;
+    font-weight: 400;
+    font-size: 16px;
+    color: #64748b;
+    background-color: #f1f5f9;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
       "Droid Sans", "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -26,49 +71,162 @@
   }
 }
 
-@theme {
-  --color-primary: #42b983;
+/* 只取消颜色相关的过渡效果 */
+* {
+  transition-property:
+    opacity, transform, translate, scale, box-shadow, filter, width, height, min-width, min-height, max-width,
+    max-height, margin, margin-top, margin-right, margin-bottom, margin-left, padding, padding-top, padding-right,
+    padding-bottom, padding-left, left, right, top, bottom, inset, font-size, font-weight, letter-spacing,
+    line-height, text-indent, text-shadow, border-width, border-radius, outline-width, outline-offset, flex,
+    flex-grow, flex-shrink, flex-basis, gap, row-gap, column-gap, visibility, z-index, clip-path, backdrop-filter,
+    border-style, outline-style !important;
+}
+
+a {
+  color: inherit;
+
+  &:hover {
+    color: var(--color-primary) !important;
+  }
 }
 
 /* 美化滚动条 */
 ::-webkit-scrollbar {
-  width: 0 ;
+  width: 0;
   height: 0;
 }
 
 /* 选中文本的颜色 */
 ::selection {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(96, 165, 250, 0.3);
   color: #1e40af;
 }
 
 ::-moz-selection {
-  background-color: rgba(59, 130, 246, 0.3);
+  background-color: rgba(96, 165, 250, 0.3);
   color: #1e40af;
+}
+
+/* 文本渐变 */
+.text-gradient {
+  display: inline-block;
+  color: #8f75da;
+  background-image: -webkit-gradient(linear, 0 0, 0 bottom, from(#177df8), to(#60a5fa));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 头像动画 */
+.avatar-animation {
+  animation: 5s linear infinite miniShape;
+}
+
+@keyframes miniShape {
+  0%,
+  to {
+    border-radius: 42% 58% 70% 30%/45% 45% 55% 55%;
+    transform: translateZ(0) rotate(0.01deg);
+  }
+  34% {
+    border-radius: 70% 30% 46% 54%/30% 29% 71% 70%;
+    transform: translate3d(0, 5px, 0) rotate(0.01deg);
+  }
+  50% {
+    transform: translateZ(0) rotate(0.01deg);
+  }
+  67% {
+    border-radius: 100% 60% 60% 100%/100% 100% 60% 60%;
+    transform: translate3d(0, -3px, 0) rotate(0.01deg);
+  }
+}
+
+/* 自定义骨架屏 - 闪光动画 */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #374151 0%, #4b5563 50%, #374151 100%);
+  background-size: 200% 100%;
+}
+
+/* 全站表单控件统一样式 */
+:root {
+  --antd-control-height: 36px;
+  --antd-control-radius: 8px;
+  --antd-control-border: #e2e8f0;
+  --antd-control-border-hover: #cbd5e1;
+  --antd-control-bg: #fff;
+  --antd-control-placeholder: #94a3b8;
+  --antd-control-text: #475569;
+  --antd-control-icon: #94a3b8;
+}
+
+.dark {
+  --antd-control-border: var(--color-strokedark, #475f7d);
+  --antd-control-border-hover: #5a7290;
+  --antd-control-bg: var(--color-boxdark-2, #263444);
+  --antd-control-placeholder: #64748b;
+  --antd-control-text: #cbd5e1;
+  --antd-control-icon: #64748b;
+}
+
+/* 表单获取焦点时的阴影效果 */
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-number:focus,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused,
+.ant-textarea:focus,
+.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 4px rgba(5, 72, 255, 0.06) !important;
+}
+
+/* 表单校验失败时的阴影效果 */
+.ant-input-status-error:focus,
+.ant-input-status-error.ant-input-focused,
+.ant-input-number-status-error:focus,
+.ant-input-number-status-error.ant-input-number-focused,
+.ant-select-status-error.ant-select-focused .ant-select-selector,
+.ant-picker-status-error.ant-picker-focused,
+.ant-textarea-status-error:focus,
+.ant-input-affix-wrapper-status-error.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.1) !important;
 }
 
 /* Ant Design 卡片美化 */
 .ant-card {
-  border-radius: 16px !important;
+  border-radius: 12px !important;
   transition: all 0.3s ease !important;
 }
 
 .ant-card-head {
-  border-radius: 16px 16px 0 0 !important;
+  border-radius: 12px 12px 0 0 !important;
+  border-color: var(--color-stroke) !important;
+}
+
+.dark .ant-card-head {
+  border-color: var(--color-strokedark) !important;
 }
 
 /* 输入框美化 */
 .ant-input,
 .ant-input-number,
 .ant-picker {
-  /* border-radius: 12px !important; */
   transition: all 0.3s ease !important;
-}
-
-.ant-input:focus,
-.ant-input-number:focus,
-.ant-picker:focus {
-  box-shadow: 0 0 0 3px rgba(58, 134, 245, 0.1) !important;
 }
 
 /* 模态框美化 */

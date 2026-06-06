@@ -22,13 +22,13 @@ export default create(
     (set, get) => ({
       tabs: [
         {
-          key: '/home',
+          key: '/',
           title: '首页',
-          path: '/home',
+          path: '/',
           closable: false, // 首页不可关闭
         },
       ],
-      activeTabKey: '/home',
+      activeTabKey: '/',
 
       addTab: (tab: TabItem) => {
         const { tabs } = get();
@@ -78,13 +78,13 @@ export default create(
         set({
           tabs: [
             {
-              key: '/home',
+              key: '/',
               title: '首页',
-              path: '/home',
+              path: '/',
               closable: false,
             },
           ],
-          activeTabKey: '/home',
+          activeTabKey: '/',
         });
       },
     }),
