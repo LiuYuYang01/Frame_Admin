@@ -137,7 +137,7 @@ export default ({ refreshKey = 0 }: Props) => {
           {(['day', 'month', 'year'] as const).map((item) => (
             <button
               key={item}
-              className={`rounded-sm py-1 px-3 text-xs font-medium text-black hover:bg-white hover:shadow-card dark:text-white dark:hover:bg-boxdark ${scope === item ? 'bg-white dark:bg-[#4e5969]! shadow-card' : ''}`}
+              className={`rounded-sm py-1 px-3 text-xs font-medium text-black hover:bg-white hover:shadow-card dark:text-white dark:hover:bg-boxdark cursor-pointer ${scope === item ? 'bg-white dark:bg-[#4e5969]! shadow-card' : ''}`}
               onClick={() => handleScopeChange(item)}
             >
               {item === 'day' ? '天' : item === 'month' ? '月' : '年'}

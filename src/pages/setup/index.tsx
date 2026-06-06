@@ -85,7 +85,7 @@ export default function SetupPage() {
     >
       <div className="flex min-h-[calc(100vh-180px)] flex-col lg:flex-row">
         <div className="shrink-0 border-b border-gray-100 dark:border-strokedark lg:w-64 lg:border-b-0 lg:border-r">
-          <div className="flex flex-col gap-0.5 p-2">
+          <div className="flex flex-col gap-0.5 p-2 mr-4">
             {MENU_LIST.map((item) => {
               const isActive = activeKey === item.key;
               return (

@@ -173,8 +173,8 @@ export default () => {
           await deletePhotoAPI([photo.id]);
           message.success('照片已彻底删除');
           getAlbumPhotos();
-        } catch {
-          message.error('删除照片失败');
+        } catch (error: any) {
+          console.error(error.message);
         }
       },
       footer: (_, { OkBtn }) => (
@@ -402,9 +402,9 @@ export default () => {
                               isBulkSelectMode
                                 ? false
                                 : {
-                                    mask: <div className="text-white">预览</div>,
-                                    src: getPreviewImageUrl(photo.url, photo.original_url),
-                                  }
+                                  mask: <div className="text-white">预览</div>,
+                                  src: getPreviewImageUrl(photo.url, photo.original_url),
+                                }
                             }
                           />
                           <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-10" />
