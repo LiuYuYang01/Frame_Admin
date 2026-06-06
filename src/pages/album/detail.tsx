@@ -8,14 +8,7 @@ import type { Photo } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
 import { formatFileSize } from '@/utils/formatSize';
-
-// 去除?imageView2/1/w/300/h/300显示原图
-const getOriginalImageUrl = (url: string) => {
-  if (!url) return '';
-  const [base, query] = url.split('?');
-  if (!query) return url;
-  return query.startsWith('imageView2/1/') ? base : url;
-};
+import { getOriginalImageUrl } from '@/utils/image';
 
 export default () => {
   const { id } = useParams<{ id: string }>();
@@ -83,7 +76,7 @@ export default () => {
   useEffect(() => {
     if (id) {
       setPhotosPage(1);
-      setPhotosLimit(24);
+      setPhotosLimit(25);
     }
   }, [id]);
 
@@ -342,6 +335,7 @@ export default () => {
                   </Space>
                 </div>
               )}
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
                 {photos.map((photo) => {
                   const isSelected = selectedAlbumPhotoIds.includes(photo.id);

@@ -267,3 +267,17 @@ a {
   background: linear-gradient(to right, #f0f0f0 4%, #e0e0e0 25%, #f0f0f0 36%);
   background-size: 1000px 100%;
 }
+
+/* 上传区拖入扫描线 */
+@keyframes upload-drop-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.upload-drop-scan {
+  animation: upload-drop-scan 1.4s ease-in-out infinite;
+}

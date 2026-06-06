@@ -366,8 +366,6 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
 
   return (
     <div className="space-y-3">
-      {!albumId && <Alert type="warning" showIcon message="未指定目标相册" description="请在父级页面传入有效的相册 ID 后再使用上传功能" />}
-
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div>
           <label className="block mb-2 font-medium">输出质量</label>

@@ -7,8 +7,12 @@ import { getAlbumListAPI, createAlbumAPI, updateAlbumAPI, deleteAlbumAPI } from 
 import type { Album, CreateAlbumParams, UpdateAlbumParams } from '@/types/album';
 import type { MenuProps } from 'antd';
 import FileSvg from '@/assets/svg/file.svg';
+import { buildImageView2Url } from '@/utils/image';
 
 const { TextArea } = Input;
+
+/** 封面卡片展示尺寸（2x 屏约 300px 宽，缩略图 400 足够清晰） */
+const COVER_THUMB_SIZE = 400;
 
 export default () => {
   const navigate = useNavigate();
@@ -219,7 +223,13 @@ export default () => {
                       <div className="flex flex-col items-center gap-2 justify-center">
                         {album.cover ? (
                           <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-md group-hover:shadow-lg transition-shadow">
-                            <img src={album.cover} alt={album.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            <img
+                              src={buildImageView2Url(album.cover, COVER_THUMB_SIZE, COVER_THUMB_SIZE)}
+                              alt={album.name}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            />
                           </div>
                         ) : (
                           <div className="w-full aspect-square flex items-center justify-center">

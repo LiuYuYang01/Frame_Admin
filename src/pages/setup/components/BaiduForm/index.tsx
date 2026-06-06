@@ -33,7 +33,7 @@ export function BaiduForm({ row, onSaved }: SetupFormProps) {
   };
 
   return (
-    <Form form={form} layout="vertical" size="large" onFinish={onFinish} className="w-full lg:w-[500px] md:ml-10">
+    <Form form={form} layout="vertical" size="large" onFinish={onFinish} className="w-full lg:w-[400px] md:ml-10">
       <Form.Item name="site_id" label="站点 ID" rules={[{ required: true, message: '请输入站点 ID' }]}>
         <InputNumber className="w-full!" min={0} placeholder="18374000" />
       </Form.Item>
