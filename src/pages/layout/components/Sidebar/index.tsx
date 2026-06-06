@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router';
-import { FiHome, FiFolder, FiMap, FiUpload } from 'react-icons/fi';
+import { FiHome, FiFolder, FiMap, FiUpload, FiSettings } from 'react-icons/fi';
 import { useUserStore } from '@/stores';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
@@ -23,6 +23,7 @@ const menuItems: MenuItem[] = [
   { path: '/albums', name: '相册管理', icon: <FiFolder className="text-lg" /> },
   { path: '/footprint', name: '足迹管理', icon: <FiMap className="text-lg" /> },
   { path: '/upload', name: '上传图片', icon: <FiUpload className="text-lg" /> },
+  { path: '/setup', name: '系统配置', icon: <FiSettings className="text-lg" /> },
 ];
 
 export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
@@ -114,8 +115,6 @@ export default ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       {/* 导航菜单区域 */}
       <div className="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear flex-1">
         <nav className="pt-2 pb-4 px-2">
-          <h3 className="mb-4 ml-4 text-sm font-semibold text-primary">导航</h3>
-
           <ul className="mb-6 flex flex-col gap-1.5">
             {menuItems.map((item) => (
               <li key={item.path}>

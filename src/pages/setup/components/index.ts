@@ -1,0 +1,1 @@
+export { BaiduForm } from './BaiduForm';

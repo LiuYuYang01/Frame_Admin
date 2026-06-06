@@ -16,7 +16,6 @@ export default create(
     }),
     {
       name: 'config_storage',
-      getStorage: () => localStorage,
     },
   ),
 );

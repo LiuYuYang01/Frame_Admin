@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { AiOutlineClose } from 'react-icons/ai';
-import { FiHome, FiFolder, FiMap, FiUpload } from 'react-icons/fi';
+import { FiHome, FiFolder, FiMap, FiUpload, FiSettings } from 'react-icons/fi';
 import useTabsStore, { type TabItem } from '@/stores/modules/tabs';
 
 interface RouteConfig {
@@ -17,6 +17,7 @@ const routeConfigList: RouteConfig[] = [
   { path: '/albums', title: '相册管理', icon: <FiFolder className="text-sm" /> },
   { path: '/footprint', title: '足迹管理', icon: <FiMap className="text-sm" /> },
   { path: '/upload', title: '上传图片', icon: <FiUpload className="text-sm" /> },
+  { path: '/setup', title: '系统配置', icon: <FiSettings className="text-sm" /> },
 ];
 
 const routeConfigMap: Record<string, RouteConfig> = Object.fromEntries(

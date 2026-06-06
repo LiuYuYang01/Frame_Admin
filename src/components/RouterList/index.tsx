@@ -6,6 +6,7 @@ import Albums from '@/pages/album';
 import AlbumDetail from '@/pages/album/detail';
 import Footprint from '@/pages/footprint';
 import Upload from '@/pages/upload';
+import Setup from '@/pages/setup';
 import { useUserStore } from '@/stores';
 
 // 路由守卫组件
@@ -45,6 +46,7 @@ export default () => {
           <Route path="albums/:id" element={<AlbumDetail />} />
           <Route path="footprint" element={<Footprint />} />
           <Route path="upload" element={<Upload />} />
+          <Route path="setup" element={<Setup />} />
         </Route>
       </Routes>
     </BrowserRouter>
