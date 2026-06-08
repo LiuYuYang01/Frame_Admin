@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Image, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination } from 'antd';
+import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination } from 'antd';
 import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
@@ -7,6 +7,7 @@ import { updatePhotoAPI, deletePhotoAPI } from '@/api/photo';
 import type { Photo } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
+import { PreviewImage, PreviewImageGroup } from '@/components/PreviewImage';
 import { formatFileSize } from '@/utils/formatSize';
 import { getThumbImageUrl, getPreviewImageUrl } from '@/utils/image';
 
@@ -333,6 +334,7 @@ export default () => {
                 </div>
               )}
 
+              <PreviewImageGroup>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
                 {photos.map((photo) => {
                   const isSelected = selectedAlbumPhotoIds.includes(photo.id);
@@ -391,21 +393,15 @@ export default () => {
                         }}
                       >
                         <div className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-md transition-all duration-300 ${isBulkSelectMode && isSelected ? 'ring-4 ring-blue-500' : 'hover:shadow-xl'}`}>
-                          <Image
+                          <PreviewImage
                             src={getThumbImageUrl(photo.url, photo.original_url)}
                             alt={photo.name}
                             loading="lazy"
                             decoding="async"
                             className="!absolute !inset-0 !w-full !h-full !object-cover"
                             wrapperClassName="!absolute !inset-0 !w-full !h-full"
-                            preview={
-                              isBulkSelectMode
-                                ? false
-                                : {
-                                  mask: <div className="text-white">预览</div>,
-                                  src: getPreviewImageUrl(photo.url, photo.original_url),
-                                }
-                            }
+                            preview={isBulkSelectMode ? false : undefined}
+                            previewSrc={getPreviewImageUrl(photo.url, photo.original_url)}
                           />
                           <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-10" />
                           {!isBulkSelectMode && (
@@ -434,6 +430,7 @@ export default () => {
                   );
                 })}
               </div>
+              </PreviewImageGroup>
 
               {photosTotal > photosLimit && (
                 <div className="mt-6 flex justify-center">

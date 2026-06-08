@@ -18,7 +18,7 @@ const SCENE_PRESETS: Record<ImageScene, ImageProcessOptions> = {
   placeholder: { width: 20, mode: 1, quality: 50, blur: 20, format: 'webp' },
   thumb: { width: 300, height: 300, mode: 1, quality: 75, format: 'webp' },
   grid: { width: 540, mode: 2, quality: 80, format: 'webp' },
-  preview: { width: 1920, mode: 2, quality: 90, interlace: true, format: 'webp' },
+  preview: { width: 1280, mode: 2, quality: 85, format: 'webp' },
   cover: { width: 400, height: 400, mode: 1, quality: 80, format: 'webp' },
 };
 

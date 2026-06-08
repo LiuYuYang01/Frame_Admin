@@ -6,6 +6,7 @@ import { calculateFileMD5 } from '@/utils/hash';
 import { compressImage } from '@/utils/compressImage';
 import { runWithConcurrency, uploadToQiniu } from '@/utils/directUpload';
 import type { FileUploadTask, PreparedUploadFile, UploadFileResponse } from '@/types/upload';
+import { DEFAULT_IMAGE_QUALITY } from '@/constants/upload';
 
 const UPLOAD_CONCURRENCY = 3;
 
@@ -14,7 +15,7 @@ interface UseImageUploadOptions {
 }
 
 export function useImageUpload(options: UseImageUploadOptions = {}) {
-  const [quality, setQuality] = useState<number>(80);
+  const [quality, setQuality] = useState<number>(DEFAULT_IMAGE_QUALITY);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -211,13 +212,10 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
       setUploadProgress(100);
       message.success(`成功上传 ${successResults.length} 张照片`);
       setFileList([]);
+      uploadTasksRef.current.clear();
+      setUploadTasks(new Map());
+      setUploadProgress(0);
       options.onUploaded?.(successResults);
-
-      setTimeout(() => {
-        setUploadProgress(0);
-        uploadTasksRef.current.clear();
-        setUploadTasks(new Map());
-      }, 2000);
 
       return successResults;
     } catch (error) {

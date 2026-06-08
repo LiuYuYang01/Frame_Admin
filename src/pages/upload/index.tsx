@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, message, Select, Button, Image } from 'antd';
+import { Upload, message, Select, Button } from 'antd';
 import {
   FiUploadCloud,
   FiFolder,
@@ -19,8 +19,11 @@ import { getAlbumListAPI } from '@/api/album';
 import type { Album } from '@/types/album';
 import { useNavigate } from 'react-router';
 import { formatFileSize } from '@/utils/formatSize';
+import { getPreviewImageUrl, getThumbImageUrl } from '@/utils/image';
 import type { FileUploadTask } from '@/types/upload';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { IMAGE_QUALITY_OPTIONS } from '@/constants/upload';
+import { PreviewImage, PreviewImageGroup } from '@/components/PreviewImage';
 
 const { Dragger } = Upload;
 
@@ -30,14 +33,6 @@ interface UploadedPhoto {
   url: string;
   size: number;
 }
-
-const qualityOptions = [
-  { label: '原图', value: 100, hint: '100' },
-  { label: '高清', value: 90, hint: '90' },
-  { label: '均衡', value: 80, hint: '80' },
-  { label: '压缩', value: 70, hint: '70' },
-  { label: '极致', value: 60, hint: '60' },
-];
 
 const steps = [
   { key: 'album', label: '选定相册', icon: FiFolder },
@@ -148,11 +143,6 @@ export default () => {
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
       message.error('只能上传图片文件！');
-      return Upload.LIST_IGNORE;
-    }
-    const isLt30M = file.size / 1024 / 1024 < 50;
-    if (!isLt30M) {
-      message.error('图片大小不能超过 30MB！');
       return Upload.LIST_IGNORE;
     }
     return false;
@@ -300,7 +290,7 @@ export default () => {
               </div>
               <div className="p-4">
                 <div className="grid grid-cols-5 gap-1.5">
-                  {qualityOptions.map((opt) => {
+                  {IMAGE_QUALITY_OPTIONS.map((opt) => {
                     const active = quality === opt.value;
                     return (
                       <button
@@ -338,10 +328,6 @@ export default () => {
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary" />
-                  单文件上限 30MB，支持批量拖拽
-                </li>
-                <li className="flex gap-2">
-                  <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary" />
                   直传七牛云，相同文件自动秒传
                 </li>
               </ul>
@@ -351,7 +337,7 @@ export default () => {
           {/* 右侧主操作区 */}
           <main className="flex min-h-0 min-w-0 flex-1 flex-col">
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark-2">
-              <div className="relative flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+              <div className={`relative flex min-h-0 flex-col p-4 sm:p-5 ${uploadedPhotos.length === 0 ? 'flex-1' : 'shrink-0'}`}>
                 {/* 裁切角标装饰 */}
                 <div
                   className={`pointer-events-none absolute transition-all duration-300 ease-out ${isDragOver ? 'inset-2 sm:inset-3' : 'inset-4 sm:inset-5'
@@ -378,13 +364,13 @@ export default () => {
                 <Dragger
                   multiple
                   fileList={fileList}
+                  showUploadList={false}
                   beforeUpload={beforeUpload}
                   onChange={handleChange}
                   onRemove={handleRemove}
                   disabled={!selectedAlbumId || uploading}
                   accept="image/*"
-                  listType="picture"
-                  className="upload-darkroom flex min-h-0 flex-1 flex-col [&_.ant-upload-wrapper]:flex! [&_.ant-upload-wrapper]:min-h-0! [&_.ant-upload-wrapper]:flex-1! [&_.ant-upload-wrapper]:flex-col! [&_.ant-upload]:min-h-0! [&_.ant-upload]:h-full! [&_.ant-upload]:flex-1! [&_.ant-upload-drag]:flex! [&_.ant-upload-drag]:min-h-0! [&_.ant-upload-drag]:h-full! [&_.ant-upload-drag]:flex-1! [&_.ant-upload-drag]:border-0! [&_.ant-upload-drag]:bg-transparent! [&_.ant-upload-drag]:p-0! [&_.ant-upload-btn]:flex! [&_.ant-upload-btn]:h-full! [&_.ant-upload-btn]:w-full! [&_.ant-upload-drag-container]:flex! [&_.ant-upload-drag-container]:h-full! [&_.ant-upload-drag-container]:flex-1! [&_.ant-upload-list]:mt-3! [&_.ant-upload-list]:shrink-0!"
+                  className="upload-darkroom flex min-h-0 flex-col [&_.ant-upload-wrapper]:flex! [&_.ant-upload-wrapper]:min-h-0! [&_.ant-upload-wrapper]:flex-col! [&_.ant-upload]:min-h-0! [&_.ant-upload-drag]:flex! [&_.ant-upload-drag]:min-h-0! [&_.ant-upload-drag]:border-0! [&_.ant-upload-drag]:bg-transparent! [&_.ant-upload-drag]:p-0! [&_.ant-upload-btn]:flex! [&_.ant-upload-btn]:w-full! [&_.ant-upload-drag-container]:flex! [&_.ant-upload-drag-container]:w-full!"
                   style={{ background: 'transparent', border: 'none' }}
                 >
                   <div
@@ -392,7 +378,8 @@ export default () => {
                     onDragLeave={handleDropZoneDragLeave}
                     onDragOver={handleDropZoneDragOver}
                     onDrop={resetDragOver}
-                    className={`relative flex h-full min-h-[200px] flex-1 flex-col items-center justify-center overflow-hidden rounded-xl border px-6 py-10 transition-all duration-300 ease-out ${!dropZoneEnabled
+                    className={`relative flex w-full flex-col items-center justify-center overflow-hidden rounded-xl border px-6 transition-all duration-300 ease-out ${uploadedPhotos.length > 0 ? 'min-h-[120px] py-6' : 'min-h-[200px] flex-1 py-10'
+                      } ${!dropZoneEnabled
                       ? 'cursor-not-allowed border-stroke bg-gray-50/50 opacity-60 dark:border-strokedark dark:bg-boxdark/30'
                       : isDragOver
                         ? 'scale-[1.008] border-solid border-primary bg-primary/10 ring-4 ring-primary/15 dark:bg-primary/15 dark:ring-primary/25'
@@ -416,7 +403,8 @@ export default () => {
                     )}
 
                     <div
-                      className={`relative z-1 mb-4 flex size-16 items-center justify-center rounded-2xl transition-all duration-300 ${isDragOver
+                      className={`relative z-1 mb-4 flex items-center justify-center rounded-2xl transition-all duration-300 ${uploadedPhotos.length > 0 ? 'size-12' : 'size-16'
+                        } ${isDragOver
                         ? 'scale-110 bg-primary text-white'
                         : 'bg-[#e7f2fe] dark:bg-[#4e5969]'
                         }`}
@@ -430,14 +418,17 @@ export default () => {
                     </div>
 
                     <p
-                      className={`relative z-1 text-base font-medium transition-all duration-300 ${isDragOver ? 'scale-105 text-primary' : 'text-black dark:text-white'
+                      className={`relative z-1 font-medium transition-all duration-300 ${uploadedPhotos.length > 0 ? 'text-sm' : 'text-base'
+                        } ${isDragOver ? 'scale-105 text-primary' : 'text-black dark:text-white'
                         }`}
                     >
-                      {isDragOver ? '松开鼠标，立即添加' : '拖拽图片到此处，或点击选取'}
+                      {isDragOver ? '松开鼠标，立即添加' : uploadedPhotos.length > 0 ? '继续添加图片' : '拖拽图片到此处，或点击选取'}
                     </p>
-                    <p className="relative z-1 mt-1.5 text-sm text-gray-500 transition-opacity duration-300">
-                      {isDragOver ? '图片将自动进入上传队列' : '支持多选，队列会自动汇总'}
-                    </p>
+                    {uploadedPhotos.length === 0 && (
+                      <p className="relative z-1 mt-1.5 text-sm text-gray-500 transition-opacity duration-300">
+                        {isDragOver ? '图片将自动进入上传队列' : '支持多选，队列会自动汇总'}
+                      </p>
+                    )}
                   </div>
                 </Dragger>
               </div>
@@ -555,69 +546,72 @@ export default () => {
                   </div>
                 </div>
               )}
+              {/* 上传成功 */}
+              {uploadedPhotos.length > 0 && (
+                <div className="shrink-0 border-t border-stroke dark:border-strokedark">
+                  <div className="flex flex-col gap-3 border-b border-stroke px-4 py-4 dark:border-strokedark sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-[#e7f2fe] dark:bg-[#4e5969]">
+                        <FiCheck className="size-5 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-medium text-black dark:text-white">传输完成</h2>
+                        <p className="text-xs text-gray-500">共 {uploadedPhotos.length} 张照片已入库</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => navigate(`/albums/${selectedAlbumId}`)}
+                        className="inline-flex! items-center! gap-1.5!"
+                        icon={<FiArrowUpRight className="size-3.5" />}
+                      >
+                        查看相册
+                      </Button>
+                      <Button
+                        danger
+                        type="primary"
+                        onClick={handleClearUploaded}
+                        className="inline-flex! items-center! gap-1.5!"
+                        icon={<FiTrash2 className="size-3.5" />}
+                      >
+                        清空列表
+                      </Button>
+                    </div>
+                  </div>
+
+                  <PreviewImageGroup>
+                  <div className="grid max-h-[420px] grid-cols-2 gap-4 overflow-y-auto p-4 sm:grid-cols-3 sm:p-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                    {uploadedPhotos.map((photo) => (
+                      <div key={photo.id} className="group min-w-0">
+                        <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-md dark:bg-boxdark-2">
+                          <PreviewImage
+                            src={getThumbImageUrl(photo.url)}
+                            alt={photo.name}
+                            loading="lazy"
+                            decoding="async"
+                            className="!absolute !inset-0 !h-full !w-full !object-cover"
+                            wrapperClassName="!absolute !inset-0 !h-full !w-full"
+                            previewSrc={getPreviewImageUrl(photo.url)}
+                          />
+                        </div>
+                        <div className="mt-2 px-1">
+                          <p
+                            className="truncate text-xs font-medium text-gray-700 dark:text-gray-300"
+                            title={photo.name}
+                          >
+                            {photo.name}
+                          </p>
+                          <p className="mt-0.5 text-[10px] tabular-nums text-gray-400">{formatFileSize(photo.size)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  </PreviewImageGroup>
+                </div>
+              )}
             </section>
           </main>
         </div>
-      )}
-
-      {/* 上传成功 */}
-      {uploadedPhotos.length > 0 && (
-        <section className="mt-6 overflow-hidden rounded-2xl border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark-2">
-          <div className="flex flex-col gap-3 border-b border-stroke px-4 py-4 dark:border-strokedark sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-[#e7f2fe] dark:bg-[#4e5969]">
-                <FiCheck className="size-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-sm font-medium text-black dark:text-white">传输完成</h2>
-                <p className="text-xs text-gray-500">共 {uploadedPhotos.length} 张照片已入库</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => navigate(`/albums/${selectedAlbumId}`)}
-                className="inline-flex! items-center! gap-1.5!"
-                icon={<FiArrowUpRight className="size-3.5" />}
-              >
-                查看相册
-              </Button>
-              <Button
-                danger
-                type="primary"
-                onClick={handleClearUploaded}
-                className="inline-flex! items-center! gap-1.5!"
-                icon={<FiTrash2 className="size-3.5" />}
-              >
-                清空列表
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 sm:p-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {uploadedPhotos.map((photo, index) => (
-              <article
-                key={photo.id}
-                className="group relative"
-                style={{ transform: `rotate(${(index % 3) - 1}deg)` }}
-              >
-                <div className="overflow-hidden rounded-xl border border-stroke bg-white p-1.5 transition-transform duration-300 group-hover:rotate-0 dark:border-strokedark dark:bg-boxdark">
-                  <div className="aspect-square overflow-hidden rounded-lg bg-[#e7f2fe]/50 dark:bg-boxdark-2">
-                    <Image
-                      src={photo.url}
-                      alt={photo.name}
-                      className="size-full object-cover"
-                      preview
-                    />
-                  </div>
-                  <div className="px-1 py-2">
-                    <p className="truncate text-xs font-medium text-black dark:text-white">{photo.name}</p>
-                    <p className="mt-0.5 text-[10px] tabular-nums text-gray-400">{formatFileSize(photo.size)}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
       )}
     </div>
   );

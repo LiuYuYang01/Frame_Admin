@@ -3,6 +3,7 @@ import { AiOutlineInbox, AiOutlineUpload } from 'react-icons/ai';
 import type { UploadProps, UploadFile } from 'antd';
 import { formatFileSize } from '@/utils/formatSize';
 import { useImageUpload } from '@/hooks/useImageUpload';
+import { IMAGE_QUALITY_SELECT_OPTIONS } from '@/constants/upload';
 
 const { Dragger } = Upload;
 
@@ -10,14 +11,6 @@ interface UploadComponentProps {
   albumId?: number | null;
   onUploaded?: (photos: any[]) => void;
 }
-
-const qualityOptions = [
-  { label: '原图 (100)', value: 100 },
-  { label: '高清 (90)', value: 90 },
-  { label: '均衡 (80)', value: 80 },
-  { label: '压缩 (70)', value: 70 },
-  { label: '极致压缩 (60)', value: 60 },
-];
 
 const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
   const { quality, setQuality, fileList, setFileList, uploading, uploadProgress, uploadTasks, handleUpload, cancelUpload } =
@@ -27,11 +20,6 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
       message.error('只能上传图片文件！');
-      return Upload.LIST_IGNORE;
-    }
-    const isLt30M = file.size / 1024 / 1024 < 50;
-    if (!isLt30M) {
-      message.error('图片大小不能超过 30MB！');
       return Upload.LIST_IGNORE;
     }
     return false;
@@ -59,12 +47,12 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
       <Space direction="vertical" style={{ width: '100%' }} size="large">
         <div>
           <label className="block mb-2 font-medium">输出质量</label>
-          <Select placeholder="请选择输出质量" value={quality} onChange={setQuality} style={{ width: '100%' }} size="large" options={qualityOptions} />
+          <Select placeholder="请选择输出质量" value={quality} onChange={setQuality} style={{ width: '100%' }} size="large" options={IMAGE_QUALITY_SELECT_OPTIONS} />
           <p className="text-sm text-gray-500 mt-2">不选择或 100 表示原图，数值越高越清晰，越低越模糊，可用于节省空间。</p>
         </div>
         <Alert
           message="上传提示"
-          description="图片将直传七牛云，支持秒传去重。支持 JPG、PNG、GIF、WEBP 等格式，单个文件不超过 30MB。"
+          description="图片将直传七牛云，支持秒传去重。支持 JPG、PNG、GIF、WEBP 等格式"
           type="info"
           showIcon
         />

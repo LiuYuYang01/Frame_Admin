@@ -1,5 +1,6 @@
+import { DEFAULT_IMAGE_QUALITY } from '@/constants/upload';
+
 const DEFAULT_MAX_LONG_EDGE = 2560;
-const DEFAULT_QUALITY = 80;
 
 export interface CompressImageOptions {
   quality?: number;
@@ -33,7 +34,7 @@ const readImageDimensions = (file: File): Promise<{ width: number; height: numbe
  * 客户端图片压缩：限制长边 + 质量压缩，减少上传体积
  */
 export const compressImage = async (file: File, options: CompressImageOptions = {}): Promise<CompressImageResult> => {
-  const quality = options.quality ?? DEFAULT_QUALITY;
+  const quality = options.quality ?? DEFAULT_IMAGE_QUALITY;
   const maxLongEdge = options.maxLongEdge ?? DEFAULT_MAX_LONG_EDGE;
 
   if (!file.type.startsWith('image/')) {

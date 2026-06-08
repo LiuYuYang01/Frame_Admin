@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Image, message, Spin, Empty, Modal, Form, Input, Descriptions, Select, Checkbox, Pagination } from 'antd';
+import { Card, Button, message, Spin, Empty, Modal, Form, Input, Descriptions, Select, Checkbox, Pagination } from 'antd';
 import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineEdit, AiOutlineEnvironment, AiOutlineSearch } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getFootprintDetailAPI, updateFootprintAPI, deleteFootprintAPI } from '@/api/footprint';
@@ -7,6 +7,7 @@ import { getAlbumListAPI, getAlbumPhotosAPI } from '@/api/album';
 import type { Footprint, UpdateFootprintParams } from '@/types/footprint';
 import type { Album } from '@/types/album';
 import type { Photo } from '@/types/photo';
+import { PreviewImage, PreviewImageGroup } from '@/components/PreviewImage';
 
 const { TextArea } = Input;
 
@@ -271,22 +272,19 @@ export default () => {
           {footprint.images && footprint.images.length > 0 ? (
             <div>
               <h3 className="text-lg font-semibold mb-3 text-gray-700">图片 ({footprint.images.length})</h3>
-              <Image.PreviewGroup>
+              <PreviewImageGroup>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {footprint.images.map((imageUrl, index) => (
                     <div key={index} className="relative aspect-square rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-                      <Image
+                      <PreviewImage
                         src={imageUrl}
                         alt={`${footprint.title} - 图片 ${index + 1}`}
                         className="w-full h-full object-cover"
-                        preview={{
-                          mask: '预览',
-                        }}
                       />
                     </div>
                   ))}
                 </div>
-              </Image.PreviewGroup>
+              </PreviewImageGroup>
             </div>
           ) : (
             <div>
@@ -336,7 +334,7 @@ export default () => {
                 <div className="grid grid-cols-4 gap-2">
                   {(form.getFieldValue('images') || []).map((url: string, index: number) => (
                     <div key={index} className="relative aspect-square rounded overflow-hidden">
-                      <Image src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
+                      <PreviewImage src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
                     </div>
                   ))}
                 </div>
