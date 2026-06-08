@@ -32,6 +32,7 @@ export interface QueryAlbumParams extends FilterParams {
   quality?: number;
   format?: 'webp' | 'jpg' | 'png' | 'avif';
   keyword?: string;
+  unbound_only?: boolean;
 }
 
 export interface ManagePhotosParams {

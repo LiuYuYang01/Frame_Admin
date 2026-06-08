@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination } from 'antd';
+import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination, Segmented } from 'antd';
 import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit, AiOutlineRocket } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
@@ -32,6 +32,7 @@ export default () => {
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<number[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [photoFilterMode, setPhotoFilterMode] = useState<'exclude' | 'unbound'>('exclude');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
@@ -65,7 +66,7 @@ export default () => {
     }
   };
 
-  // 加载待添加照片（排除当前相册已有的）
+  // 加载待添加照片（排除当前相册已有的，或仅未绑定任何相册的）
   const getPhotosExcludeFromAlbum = async (page = availablePhotosPage, limit = availablePhotosLimit) => {
     if (!id) return;
     try {
@@ -75,6 +76,7 @@ export default () => {
         limit,
         scene: 'thumb',
         keyword: debouncedKeyword || undefined,
+        unbound_only: photoFilterMode === 'unbound',
       });
       setAvailablePhotos(data.result);
       setAvailablePhotosTotal(data.total);
@@ -110,7 +112,7 @@ export default () => {
   useEffect(() => {
     if (!isAddModalOpen) return;
     getPhotosExcludeFromAlbum(availablePhotosPage, availablePhotosLimit);
-  }, [isAddModalOpen, debouncedKeyword, availablePhotosPage, availablePhotosLimit]);
+  }, [isAddModalOpen, debouncedKeyword, availablePhotosPage, availablePhotosLimit, photoFilterMode]);
 
   useEffect(() => {
     setSelectedAlbumPhotoIds((prev) => prev.filter((id) => photos.some((photo) => photo.id === id)));
@@ -360,6 +362,8 @@ export default () => {
     setSlimCurrentName('');
     setSlimResultText(`完成：成功 ${success} 张，跳过 ${skipped} 张，失败 ${failed} 张，共节省 ${formatFileSize(savedBytes)}`);
     message.success('照片瘦身任务已完成');
+    setSelectedAlbumPhotoIds([]);
+    setIsBulkSelectMode(false);
     getAlbumPhotos();
   };
 
@@ -379,10 +383,12 @@ export default () => {
           title={<Button icon={<AiOutlineArrowLeft />} onClick={() => navigate('/albums')} />}
           extra={
             <Space size={10}>
+              <Button onClick={() => setIsAddModalOpen(true)}>绑定照片</Button>
+
               <Button type={isBulkSelectMode ? 'primary' : 'default'} danger={isBulkSelectMode} onClick={toggleBulkSelectMode}>
                 {isBulkSelectMode ? '退出批量' : '批量选择'}
               </Button>
-              <Button onClick={() => setIsAddModalOpen(true)}>绑定照片</Button>
+              
               <Button type="primary" onClick={() => setIsUploadModalOpen(true)}>
                 上传照片
               </Button>
@@ -517,6 +523,7 @@ export default () => {
                                 />
                                 <Button
                                   size="small"
+                                  type="primary"
                                   icon={<AiOutlineEdit />}
                                   onClick={(event) => {
                                     event.stopPropagation();
@@ -590,20 +597,36 @@ export default () => {
           setIsAddModalOpen(false);
           setSelectedPhotoIds([]);
           setSearchKeyword('');
+          setPhotoFilterMode('exclude');
         }}
       >
-        <div className="flex justify-between items-center mb-4">
-          <Input
-            placeholder="搜索照片名称"
-            prefix={<AiOutlineSearch />}
-            value={searchKeyword}
-            onChange={(e) => {
-              setSearchKeyword(e.target.value);
-              setAvailablePhotosPage(1);
-            }}
-            allowClear
-            className="!w-[300px]"
-          />
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="搜索照片名称"
+              prefix={<AiOutlineSearch />}
+              value={searchKeyword}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                setAvailablePhotosPage(1);
+              }}
+              allowClear
+              className="!w-[300px]"
+            />
+
+            <Segmented
+              value={photoFilterMode}
+              options={[
+                { label: '未加入本相册', value: 'exclude' },
+                { label: '未绑定相册', value: 'unbound' },
+              ]}
+              onChange={(value) => {
+                setPhotoFilterMode(value as 'exclude' | 'unbound');
+                setAvailablePhotosPage(1);
+                setSelectedPhotoIds([]);
+              }}
+            />
+          </div>
 
           <Button type={selectedPhotoIds.length > 0 ? 'primary' : 'default'} onClick={handleAddPhotos}>{`绑定 ${selectedPhotoIds.length} 张照片`}</Button>
         </div>
@@ -613,7 +636,7 @@ export default () => {
             <Spin />
           </div>
         ) : availablePhotos.length === 0 ? (
-          <Empty description="没有可添加的照片" />
+          <Empty description={photoFilterMode === 'unbound' ? '没有未绑定任何相册的照片' : '没有可添加的照片'} />
         ) : (
           <>
             <div className="pr-2">
