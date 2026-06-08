@@ -297,7 +297,7 @@ export default () => {
                         key={opt.value}
                         type="button"
                         onClick={() => setQuality(opt.value)}
-                        className={`group flex flex-col items-center rounded-xl border px-1 py-2.5 transition-colors ${active
+                        className={`group flex flex-col items-center rounded-xl border px-1 py-2.5 transition-colors cursor-pointer ${active
                           ? 'border-primary bg-primary text-white'
                           : 'border-stroke bg-gray-50 text-gray-600 hover:border-primary/40 hover:bg-primary/5 dark:border-strokedark dark:bg-boxdark dark:text-gray-300 dark:hover:border-primary/50'
                           }`}
@@ -380,10 +380,10 @@ export default () => {
                     onDrop={resetDragOver}
                     className={`relative flex w-full flex-col items-center justify-center overflow-hidden rounded-xl border px-6 transition-all duration-300 ease-out ${uploadedPhotos.length > 0 ? 'min-h-[120px] py-6' : 'min-h-[200px] flex-1 py-10'
                       } ${!dropZoneEnabled
-                      ? 'cursor-not-allowed border-stroke bg-gray-50/50 opacity-60 dark:border-strokedark dark:bg-boxdark/30'
-                      : isDragOver
-                        ? 'scale-[1.008] border-solid border-primary bg-primary/10 ring-4 ring-primary/15 dark:bg-primary/15 dark:ring-primary/25'
-                        : 'border-dashed border-primary/25 bg-[length:20px_20px] bg-[#e7f2fe]/30 hover:border-primary/60 hover:bg-primary/5 dark:border-primary/20 dark:bg-boxdark/40 dark:hover:border-primary/50 dark:hover:bg-primary/10'
+                        ? 'cursor-not-allowed border-stroke bg-gray-50/50 opacity-60 dark:border-strokedark dark:bg-boxdark/30'
+                        : isDragOver
+                          ? 'scale-[1.008] border-solid border-primary bg-primary/10 ring-4 ring-primary/15 dark:bg-primary/15 dark:ring-primary/25'
+                          : 'border-dashed border-primary/25 bg-[length:20px_20px] bg-[#e7f2fe]/30 hover:border-primary/60 hover:bg-primary/5 dark:border-primary/20 dark:bg-boxdark/40 dark:hover:border-primary/50 dark:hover:bg-primary/10'
                       }`}
                     style={{
                       backgroundImage: isDragOver
@@ -405,8 +405,8 @@ export default () => {
                     <div
                       className={`relative z-1 mb-4 flex items-center justify-center rounded-2xl transition-all duration-300 ${uploadedPhotos.length > 0 ? 'size-12' : 'size-16'
                         } ${isDragOver
-                        ? 'scale-110 bg-primary text-white'
-                        : 'bg-[#e7f2fe] dark:bg-[#4e5969]'
+                          ? 'scale-110 bg-primary text-white'
+                          : 'bg-[#e7f2fe] dark:bg-[#4e5969]'
                         }`}
                       style={isDragOver ? { boxShadow: '0 0 0 8px rgba(96,165,250,0.12)' } : undefined}
                     >
@@ -580,32 +580,32 @@ export default () => {
                   </div>
 
                   <PreviewImageGroup>
-                  <div className="grid max-h-[420px] grid-cols-2 gap-4 overflow-y-auto p-4 sm:grid-cols-3 sm:p-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {uploadedPhotos.map((photo) => (
-                      <div key={photo.id} className="group min-w-0">
-                        <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-md dark:bg-boxdark-2">
-                          <PreviewImage
-                            src={getThumbImageUrl(photo.url)}
-                            alt={photo.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="!absolute !inset-0 !h-full !w-full !object-cover"
-                            wrapperClassName="!absolute !inset-0 !h-full !w-full"
-                            previewSrc={getPreviewImageUrl(photo.url)}
-                          />
+                    <div className="grid max-h-[420px] grid-cols-2 gap-4 overflow-y-auto p-4 sm:grid-cols-3 sm:p-5 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                      {uploadedPhotos.map((photo) => (
+                        <div key={photo.id} className="group min-w-0">
+                          <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-md dark:bg-boxdark-2">
+                            <PreviewImage
+                              src={getThumbImageUrl(photo.url)}
+                              alt={photo.name}
+                              loading="lazy"
+                              decoding="async"
+                              className="!absolute !inset-0 !h-full !w-full !object-cover"
+                              wrapperClassName="!absolute !inset-0 !h-full !w-full"
+                              previewSrc={getPreviewImageUrl(photo.url)}
+                            />
+                          </div>
+                          <div className="mt-2 px-1">
+                            <p
+                              className="truncate text-xs font-medium text-gray-700 dark:text-gray-300"
+                              title={photo.name}
+                            >
+                              {photo.name}
+                            </p>
+                            <p className="mt-0.5 text-[10px] tabular-nums text-gray-400">{formatFileSize(photo.size)}</p>
+                          </div>
                         </div>
-                        <div className="mt-2 px-1">
-                          <p
-                            className="truncate text-xs font-medium text-gray-700 dark:text-gray-300"
-                            title={photo.name}
-                          >
-                            {photo.name}
-                          </p>
-                          <p className="mt-0.5 text-[10px] tabular-nums text-gray-400">{formatFileSize(photo.size)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
                   </PreviewImageGroup>
                 </div>
               )}

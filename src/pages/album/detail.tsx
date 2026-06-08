@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination } from 'antd';
-import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit } from 'react-icons/ai';
+import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit, AiOutlineRocket } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
-import { updatePhotoAPI, deletePhotoAPI } from '@/api/photo';
-import type { Photo } from '@/types/photo';
+import { updatePhotoAPI, deletePhotoAPI, previewSlimPhotosAPI, slimPhotosAPI } from '@/api/photo';
+import type { Photo, SlimPhotoPreview } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
 import { PreviewImage, PreviewImageGroup } from '@/components/PreviewImage';
 import { formatFileSize } from '@/utils/formatSize';
 import { getThumbImageUrl, getPreviewImageUrl } from '@/utils/image';
+
+const SLIM_MIN_SIZE_BYTES = 500 * 1024;
+const SLIM_MAX_LONG_EDGE = 2560;
+const SLIM_QUALITY = 50;
 
 export default () => {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +40,14 @@ export default () => {
   const [isBulkSelectMode, setIsBulkSelectMode] = useState(false);
   const [selectedAlbumPhotoIds, setSelectedAlbumPhotoIds] = useState<number[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [isSlimModalOpen, setIsSlimModalOpen] = useState(false);
+  const [slimPreview, setSlimPreview] = useState<SlimPhotoPreview | null>(null);
+  const [slimPreviewLoading, setSlimPreviewLoading] = useState(false);
+  const [slimRunning, setSlimRunning] = useState(false);
+  const [slimCurrentName, setSlimCurrentName] = useState('');
+  const [slimTargetIds, setSlimTargetIds] = useState<number[]>([]);
+  const [slimResultText, setSlimResultText] = useState('');
+  const [slimSelectedMode, setSlimSelectedMode] = useState(false);
   const isAllAlbumPhotosSelected = photos.length > 0 && selectedAlbumPhotoIds.length === photos.length;
 
   // 加载相册照片
@@ -127,6 +139,11 @@ export default () => {
     setEditPhotoName(photo.name);
     setEditPhotoDescription(photo.description || '');
     setIsEditModalOpen(true);
+  };
+
+  const handleSlimPhoto = (photo: Photo, event: React.MouseEvent) => {
+    event.stopPropagation();
+    openSlimModal([photo.id]);
   };
 
   // 更新照片名称
@@ -275,6 +292,85 @@ export default () => {
     });
   };
 
+  const loadSlimPreview = async (photoIds?: number[]) => {
+    if (!id && (!photoIds || photoIds.length === 0)) return;
+
+    setSlimPreviewLoading(true);
+    setSlimResultText('');
+    try {
+      const { data } = await previewSlimPhotosAPI({
+        ...(photoIds?.length ? { ids: photoIds } : { albumId: Number(id) }),
+        minSizeBytes: SLIM_MIN_SIZE_BYTES,
+        maxLongEdge: SLIM_MAX_LONG_EDGE,
+      });
+      setSlimPreview(data);
+      setSlimTargetIds(data.photoIds);
+    } catch {
+      message.error('获取瘦身预览失败');
+      setSlimPreview(null);
+      setSlimTargetIds([]);
+    } finally {
+      setSlimPreviewLoading(false);
+    }
+  };
+
+  const openSlimModal = async (photoIds?: number[]) => {
+    setSlimSelectedMode(Boolean(photoIds?.length));
+    setIsSlimModalOpen(true);
+    setSlimCurrentName('');
+    await loadSlimPreview(photoIds);
+  };
+
+  const runSlimTask = async () => {
+    if (slimTargetIds.length === 0) {
+      message.info('没有需要瘦身的照片');
+      return;
+    }
+
+    setSlimRunning(true);
+    setSlimResultText('');
+
+    let success = 0;
+    let failed = 0;
+    let skipped = 0;
+    let savedBytes = 0;
+
+    for (let index = 0; index < slimTargetIds.length; index += 1) {
+      const photoId = slimTargetIds[index];
+      const previewItem = slimPreview?.items.find((item) => item.id === photoId);
+      setSlimCurrentName(previewItem?.name || `照片 #${photoId}`);
+
+      try {
+        const { data } = await slimPhotosAPI({
+          ids: [photoId],
+          minSizeBytes: SLIM_MIN_SIZE_BYTES,
+          maxLongEdge: SLIM_MAX_LONG_EDGE,
+          quality: SLIM_QUALITY,
+        });
+        success += data.success;
+        failed += data.failed;
+        skipped += data.skipped;
+        savedBytes += data.results.reduce((sum, item) => sum + (item.savedBytes || 0), 0);
+      } catch {
+        failed += 1;
+      }
+    }
+
+    setSlimRunning(false);
+    setSlimCurrentName('');
+    setSlimResultText(`完成：成功 ${success} 张，跳过 ${skipped} 张，失败 ${failed} 张，共节省 ${formatFileSize(savedBytes)}`);
+    message.success('照片瘦身任务已完成');
+    getAlbumPhotos();
+  };
+
+  const handleBulkSlimPhotos = () => {
+    if (selectedAlbumPhotoIds.length === 0) {
+      message.warning('请选择要瘦身的照片');
+      return;
+    }
+    openSlimModal(selectedAlbumPhotoIds);
+  };
+
   return (
     <div className="space-y-2">
       {/* 照片网格 */}
@@ -326,6 +422,9 @@ export default () => {
                   <Space>
                     <Button onClick={handleBulkRemovePhotos} loading={bulkActionLoading} disabled={selectedAlbumPhotoIds.length === 0}>
                       从相册移除
+                    </Button>
+                    <Button onClick={handleBulkSlimPhotos} loading={slimPreviewLoading || slimRunning} disabled={selectedAlbumPhotoIds.length === 0}>
+                      一键瘦身
                     </Button>
                     <Button type="primary" danger onClick={handleBulkDeletePhotos} loading={bulkActionLoading} disabled={selectedAlbumPhotoIds.length === 0}>
                       彻底删除
@@ -407,8 +506,35 @@ export default () => {
                           {!isBulkSelectMode && (
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 z-20">
                               <Space>
-                                <Button size="small" icon={<AiOutlineEdit />} onClick={() => handleEditPhoto(photo)} className="shadow-lg" />
-                                <Button type="primary" danger size="small" icon={<AiOutlineDelete />} onClick={() => handleDeletePhoto(photo)} className="shadow-lg" />
+                                <Button
+                                  size="small"
+                                  icon={<AiOutlineRocket />}
+                                  title="瘦身"
+                                  loading={slimRunning && slimTargetIds.includes(photo.id)}
+                                  disabled={slimPreviewLoading || slimRunning}
+                                  onClick={(event) => handleSlimPhoto(photo, event)}
+                                  className="shadow-lg"
+                                />
+                                <Button
+                                  size="small"
+                                  icon={<AiOutlineEdit />}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleEditPhoto(photo);
+                                  }}
+                                  className="shadow-lg"
+                                />
+                                <Button
+                                  type="primary"
+                                  danger
+                                  size="small"
+                                  icon={<AiOutlineDelete />}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDeletePhoto(photo);
+                                  }}
+                                  className="shadow-lg"
+                                />
                               </Space>
                             </div>
                           )}
@@ -572,6 +698,55 @@ export default () => {
             getAlbumPhotos();
           }}
         />
+      </Modal>
+
+      {/* 一键瘦身弹窗 */}
+      <Modal
+        title="一键瘦身"
+        open={isSlimModalOpen}
+        onCancel={() => {
+          if (slimRunning) return;
+          setIsSlimModalOpen(false);
+          setSlimPreview(null);
+          setSlimResultText('');
+        }}
+        onOk={runSlimTask}
+        okText={slimRunning ? '处理中...' : '开始瘦身'}
+        cancelText="关闭"
+        confirmLoading={slimRunning}
+        okButtonProps={{ disabled: slimPreviewLoading || !slimPreview?.count || slimRunning }}
+      >
+        {slimPreviewLoading ? (
+          <div className="py-8 text-center">
+            <Spin />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              将通过七牛云持久化处理压缩 Bucket 中的原图（长边不超过 {SLIM_MAX_LONG_EDGE}px，JPEG 质量 {SLIM_QUALITY}），无需删除重传。
+            </p>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 space-y-1">
+              <div>待处理：{slimPreview?.count ?? 0} 张</div>
+              <div>总体积：{formatFileSize(slimPreview?.totalSize ?? 0)}</div>
+              <div>
+                {slimSelectedMode
+                  ? '将对选中的照片执行压缩（GIF 自动跳过）'
+                  : `触发条件：单张大于 ${formatFileSize(SLIM_MIN_SIZE_BYTES)}（GIF 自动跳过）`}
+              </div>
+              {slimSelectedMode && slimPreview?.count === 0 && (
+                <div className="text-amber-600">选中的照片均为 GIF 或不支持处理的格式</div>
+              )}
+            </div>
+            {slimRunning && (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Spin />
+                {slimCurrentName && <div className="text-xs text-gray-500 truncate">正在处理：{slimCurrentName}</div>}
+              </div>
+            )}
+            {slimResultText && <div className="text-sm text-green-600">{slimResultText}</div>}
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -1,5 +1,12 @@
 import request from '@/utils/request';
-import type { Photo, CreatePhotoParams, UpdatePhotoParams } from '@/types/photo';
+import type {
+  Photo,
+  CreatePhotoParams,
+  UpdatePhotoParams,
+  SlimPhotoParams,
+  SlimPhotoPreview,
+  SlimPhotosSummary,
+} from '@/types/photo';
 
 /**
  * 创建照片
@@ -52,5 +59,26 @@ export const updatePhotoAPI = (id: number, params: UpdatePhotoParams) => {
 export const deletePhotoAPI = (ids: number[]) => {
   return request<void>('DELETE', `/photo`, {
     data: { ids },
+  });
+};
+
+/**
+ * 预览待瘦身照片
+ */
+export const previewSlimPhotosAPI = (params: SlimPhotoParams) => {
+  return request<SlimPhotoPreview>('GET', '/photo/slim/preview', {
+    params,
+    paramsSerializer: {
+      indexes: null,
+    },
+  });
+};
+
+/**
+ * 批量瘦身照片（七牛 pfop 持久化处理）
+ */
+export const slimPhotosAPI = (params: SlimPhotoParams) => {
+  return request<SlimPhotosSummary>('POST', '/photo/slim', {
+    data: params,
   });
 };
