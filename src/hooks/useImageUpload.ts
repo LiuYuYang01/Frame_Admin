@@ -3,7 +3,7 @@ import { message } from 'antd';
 import type { UploadFile } from 'antd';
 import { preUploadAPI, confirmUploadAPI } from '@/api/upload';
 import { calculateFileMD5 } from '@/utils/hash';
-import { compressImage } from '@/utils/compressImage';
+import { compressImage, readImageDimensions } from '@/utils/compressImage';
 import { runWithConcurrency, uploadToQiniu } from '@/utils/directUpload';
 import type { FileUploadTask, PreparedUploadFile, UploadFileResponse } from '@/types/upload';
 import { DEFAULT_IMAGE_QUALITY } from '@/constants/upload';
@@ -57,8 +57,8 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
             return result;
           } catch (error) {
             console.error(`处理 ${file.name} 失败:`, error);
-            const fallback = await compressImage(file, { quality: 100 });
-            return fallback;
+            const dimensions = await readImageDimensions(file);
+            return { file, ...dimensions };
           }
         }),
       );

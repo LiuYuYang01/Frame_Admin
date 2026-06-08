@@ -289,7 +289,7 @@ export default () => {
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-4 gap-1.5">
                   {IMAGE_QUALITY_OPTIONS.map((opt) => {
                     const active = quality === opt.value;
                     return (
@@ -314,7 +314,7 @@ export default () => {
                   })}
                 </div>
                 <p className="mt-3 text-xs leading-relaxed text-gray-500">
-                  100 为原图无损；降低数值可显著节省存储，适合批量归档。
+                  自适应会根据图片体积与分辨率自动选档；其余档位按固定质量压缩。
                 </p>
               </div>
             </section>

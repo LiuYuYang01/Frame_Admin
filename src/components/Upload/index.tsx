@@ -48,7 +48,7 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
         <div>
           <label className="block mb-2 font-medium">输出质量</label>
           <Select placeholder="请选择输出质量" value={quality} onChange={setQuality} style={{ width: '100%' }} size="large" options={IMAGE_QUALITY_SELECT_OPTIONS} />
-          <p className="text-sm text-gray-500 mt-2">不选择或 100 表示原图，数值越高越清晰，越低越模糊，可用于节省空间。</p>
+          <p className="text-sm text-gray-500 mt-2">自适应会根据图片自动选档；固定档位数值越高越清晰，越低越省空间。</p>
         </div>
         <Alert
           message="上传提示"
