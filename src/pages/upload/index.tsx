@@ -15,14 +15,12 @@ import {
 } from 'react-icons/fi';
 import { HiOutlinePhotograph } from 'react-icons/hi';
 import type { UploadProps, UploadFile } from 'antd';
-import { uploadFileAPI, chunkUploadAPI, getUploadProgressAPI, cancelUploadAPI } from '@/api/upload';
 import { getAlbumListAPI } from '@/api/album';
 import type { Album } from '@/types/album';
 import { useNavigate } from 'react-router';
-import { calculateFileHash } from '@/utils/hash';
 import { formatFileSize } from '@/utils/formatSize';
 import type { FileUploadTask } from '@/types/upload';
-import { compressImage } from '@/utils/compressImage';
+import { useImageUpload } from '@/hooks/useImageUpload';
 
 const { Dragger } = Upload;
 
@@ -63,19 +61,23 @@ export default () => {
   const navigate = useNavigate();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [selectedAlbumId, setSelectedAlbumId] = useState<number | null>(null);
-  const [quality, setQuality] = useState<number>(80);
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedPhotos, setUploadedPhotos] = useState<UploadedPhoto[]>([]);
-  const [uploadTasks, setUploadTasks] = useState<Map<string, FileUploadTask>>(new Map());
-  const uploadTasksRef = useRef<Map<string, FileUploadTask>>(new Map());
-  const cancelTokensRef = useRef<Map<string, AbortController>>(new Map());
   const dragCounterRef = useRef(0);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const CHUNK_SIZE = 4 * 1024 * 1024;
-  const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024;
+  const {
+    quality,
+    setQuality,
+    fileList,
+    setFileList,
+    uploading,
+    uploadProgress,
+    uploadTasks,
+    handleUpload,
+    cancelUpload,
+  } = useImageUpload({
+    onUploaded: (photos) => setUploadedPhotos(photos),
+  });
 
   const selectedAlbum = albums.find((a) => a.id === selectedAlbumId);
   const totalSelectedSize = fileList.reduce((acc, file) => acc + (file.size || 0), 0);
@@ -148,7 +150,7 @@ export default () => {
       message.error('只能上传图片文件！');
       return Upload.LIST_IGNORE;
     }
-    const isLt30M = file.size / 1024 / 1024 < 30;
+    const isLt30M = file.size / 1024 / 1024 < 50;
     if (!isLt30M) {
       message.error('图片大小不能超过 30MB！');
       return Upload.LIST_IGNORE;
@@ -164,232 +166,15 @@ export default () => {
   };
 
   const handleRemove = (file: UploadFile) => {
-    const index = fileList.indexOf(file);
-    const newFileList = fileList.slice();
-    newFileList.splice(index, 1);
-    setFileList(newFileList);
+    setFileList((prev) => prev.filter((item) => item.uid !== file.uid));
   };
 
-  const updateUploadTask = (uploadId: string, updates: Partial<FileUploadTask>) => {
-    const task = uploadTasksRef.current.get(uploadId);
-    if (task) {
-      const updatedTask = { ...task, ...updates };
-      uploadTasksRef.current.set(uploadId, updatedTask);
-      setUploadTasks(new Map(uploadTasksRef.current));
-    }
-  };
-
-  const calculateOverallProgress = () => {
-    const tasks = Array.from(uploadTasksRef.current.values());
-    if (tasks.length === 0) return 0;
-    const totalProgress = tasks.reduce((sum, task) => sum + task.progress, 0);
-    return Math.floor(totalProgress / tasks.length);
-  };
-
-  const uploadFileByChunks = async (file: File, uploadId: string, hash?: string, albumId?: number): Promise<void> => {
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const abortController = new AbortController();
-    cancelTokensRef.current.set(uploadId, abortController);
-
-    try {
-      const progressResult = await getUploadProgressAPI(uploadId);
-      const uploadedChunks = progressResult.data.uploadedChunks || [];
-      updateUploadTask(uploadId, {
-        uploadedChunks,
-        status: 'uploading',
-      });
-
-      for (let i = 0; i < totalChunks; i++) {
-        if (abortController.signal.aborted) {
-          updateUploadTask(uploadId, { status: 'cancelled' });
-          throw new Error('上传已取消');
-        }
-
-        if (uploadedChunks.includes(i)) {
-          continue;
-        }
-
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-
-        const result = await chunkUploadAPI({
-          chunk,
-          uploadId,
-          chunkIndex: i,
-          totalChunks,
-          fileSize: file.size,
-          fileName: file.name,
-          hash,
-          albumId,
-        });
-
-        const newUploadedChunks = result.data.uploaded;
-        updateUploadTask(uploadId, {
-          uploadedChunks: newUploadedChunks,
-          progress: Math.floor((newUploadedChunks.length / totalChunks) * 100),
-        });
-        setUploadProgress(calculateOverallProgress());
-
-        if (result.data.completed && 'photo' in result.data) {
-          updateUploadTask(uploadId, {
-            status: 'completed',
-            progress: 100,
-            result: result.data.photo,
-          });
-          setUploadProgress(calculateOverallProgress());
-          return;
-        }
-      }
-    } catch (error: any) {
-      if (error.message === '上传已取消') {
-        return;
-      }
-      updateUploadTask(uploadId, {
-        status: 'error',
-        error: error.message || '上传失败',
-      });
-      throw error;
-    } finally {
-      cancelTokensRef.current.delete(uploadId);
-    }
-  };
-
-  const uploadFileNormal = async (file: File, albumId: number): Promise<any> => {
-    const result = await uploadFileAPI({
-      files: [file],
-      albumId,
-    });
-    return result.data[0];
-  };
-
-  const uploadSingleFile = async (file: File, albumId: number): Promise<any> => {
-    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    const task: FileUploadTask = {
-      file,
-      uploadId,
-      totalChunks: Math.ceil(file.size / CHUNK_SIZE),
-      uploadedChunks: [],
-      status: 'checking',
-      progress: 0,
-    };
-    uploadTasksRef.current.set(uploadId, task);
-    setUploadTasks(new Map(uploadTasksRef.current));
-
-    try {
-      updateUploadTask(uploadId, { status: 'uploading', progress: 5 });
-      const hash = await calculateFileHash(file);
-      updateUploadTask(uploadId, { hash, progress: 10 });
-
-      if (file.size > LARGE_FILE_THRESHOLD) {
-        await uploadFileByChunks(file, uploadId, hash, albumId);
-        const completedTask = uploadTasksRef.current.get(uploadId);
-        return completedTask?.result;
-      } else {
-        updateUploadTask(uploadId, { progress: 30 });
-        const result = await uploadFileNormal(file, albumId);
-        updateUploadTask(uploadId, {
-          status: 'completed',
-          progress: 100,
-          result,
-        });
-        return result;
-      }
-    } catch (error: any) {
-      updateUploadTask(uploadId, {
-        status: 'error',
-        error: error.message || '上传失败',
-      });
-      throw error;
-    }
-  };
-
-  const cancelUpload = async (uploadId: string) => {
-    const abortController = cancelTokensRef.current.get(uploadId);
-    if (abortController) {
-      abortController.abort();
-    }
-
-    try {
-      await cancelUploadAPI(uploadId);
-      updateUploadTask(uploadId, { status: 'cancelled' });
-      message.success('已取消上传');
-    } catch (error) {
-      console.error('取消上传失败:', error);
-    }
-  };
-
-  const handleUpload = async () => {
+  const startUpload = async () => {
     if (!selectedAlbumId) {
       message.error('请选择目标相册');
       return;
     }
-    if (fileList.length === 0) {
-      message.warning('请先选择要上传的文件');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      setUploadProgress(0);
-      uploadTasksRef.current.clear();
-      setUploadTasks(new Map());
-
-      const originalFiles = fileList.map((file) => file.originFileObj as File);
-      let filesToUpload: File[] = originalFiles;
-
-      message.loading({ content: '正在处理图片...', key: 'compressing', duration: 0 });
-
-      try {
-        const compressPromises = originalFiles.map(async (file, index) => {
-          try {
-            const compressed = await compressImage(file, { quality });
-            const progress = Math.floor(((index + 1) / originalFiles.length) * 30);
-            setUploadProgress(progress);
-            return compressed;
-          } catch (error) {
-            console.error(`处理 ${file.name} 失败:`, error);
-            return file;
-          }
-        });
-
-        filesToUpload = await Promise.all(compressPromises);
-
-        const originalSize = originalFiles.reduce((acc, file) => acc + file.size, 0);
-        const compressedSize = filesToUpload.reduce((acc, file) => acc + file.size, 0);
-        if (compressedSize < originalSize) {
-          const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-          message.success(`图片处理完成，体积减少 ${ratio}%`);
-        }
-      } catch {
-        message.warning('部分图片处理失败，将使用原图上传');
-        filesToUpload = originalFiles;
-      } finally {
-        message.destroy('compressing');
-      }
-
-      const uploadPromises = filesToUpload.map((file) => uploadSingleFile(file, selectedAlbumId));
-
-      const results = await Promise.all(uploadPromises);
-      const successResults = results.filter((r) => r !== undefined);
-
-      setUploadProgress(100);
-      message.success(`成功上传 ${successResults.length} 张照片`);
-      setUploadedPhotos(successResults);
-      setFileList([]);
-
-      setTimeout(() => {
-        setUploadProgress(0);
-        uploadTasksRef.current.clear();
-        setUploadTasks(new Map());
-      }, 2000);
-    } catch (error) {
-      console.error('上传失败:', error);
-      message.error('上传失败，请重试');
-    } finally {
-      setUploading(false);
-    }
+    await handleUpload(selectedAlbumId);
   };
 
   const handleClearUploaded = () => {
@@ -557,7 +342,7 @@ export default () => {
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-1.5 size-1 shrink-0 rounded-full bg-primary" />
-                  大文件自动分片，断点可续传
+                  直传七牛云，相同文件自动秒传
                 </li>
               </ul>
             </div>
@@ -683,7 +468,7 @@ export default () => {
                       </Button>
                       <Button
                         type="primary"
-                        onClick={handleUpload}
+                        onClick={startUpload}
                         loading={uploading}
                         disabled={!selectedAlbumId}
                         className="inline-flex! items-center! gap-1.5!"
@@ -731,8 +516,7 @@ export default () => {
                                 <span className={`inline-flex items-center gap-1.5 text-[11px] ${meta.tone}`}>
                                   <span className={`size-1.5 rounded-full ${meta.dot}`} />
                                   {meta.label}
-                                  {task.status === 'uploading' &&
-                                    ` · ${task.uploadedChunks.length}/${task.totalChunks} 分片`}
+                                  {task.status === 'uploading' && ` · ${task.progress}%`}
                                   {task.status === 'error' && task.error && ` · ${task.error}`}
                                 </span>
                                 <span className="text-[11px] tabular-nums text-gray-400">

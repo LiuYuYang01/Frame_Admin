@@ -6,25 +6,48 @@ export interface CompressImageOptions {
   maxLongEdge?: number;
 }
 
-/**
- * 客户端图片压缩：限制长边 + 质量压缩，减少上传体积
- */
-export const compressImage = (file: File, options: CompressImageOptions = {}): Promise<File> => {
-  const quality = options.quality ?? DEFAULT_QUALITY;
-  const maxLongEdge = options.maxLongEdge ?? DEFAULT_MAX_LONG_EDGE;
+export interface CompressImageResult {
+  file: File;
+  width: number;
+  height: number;
+}
 
+const readImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) {
-      resolve(file);
-      return;
-    }
-
     const reader = new FileReader();
     reader.readAsDataURL(file);
 
-    reader.onload = (e) => {
+    reader.onload = (event) => {
       const img = document.createElement('img');
-      img.src = e.target?.result as string;
+      img.src = event.target?.result as string;
+
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = () => reject(new Error('图片加载失败'));
+    };
+
+    reader.onerror = () => reject(new Error('文件读取失败'));
+  });
+};
+
+/**
+ * 客户端图片压缩：限制长边 + 质量压缩，减少上传体积
+ */
+export const compressImage = async (file: File, options: CompressImageOptions = {}): Promise<CompressImageResult> => {
+  const quality = options.quality ?? DEFAULT_QUALITY;
+  const maxLongEdge = options.maxLongEdge ?? DEFAULT_MAX_LONG_EDGE;
+
+  if (!file.type.startsWith('image/')) {
+    const dimensions = await readImageDimensions(file);
+    return { file, ...dimensions };
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (event) => {
+      const img = document.createElement('img');
+      img.src = event.target?.result as string;
 
       img.onload = () => {
         const { width, height } = img;
@@ -33,7 +56,7 @@ export const compressImage = (file: File, options: CompressImageOptions = {}): P
         const shouldCompress = quality < 100;
 
         if (!shouldResize && !shouldCompress) {
-          resolve(file);
+          resolve({ file, width, height });
           return;
         }
 
@@ -70,7 +93,11 @@ export const compressImage = (file: File, options: CompressImageOptions = {}): P
               lastModified: Date.now(),
             });
 
-            resolve(compressedFile);
+            resolve({
+              file: compressedFile,
+              width: targetWidth,
+              height: targetHeight,
+            });
           },
           outputType,
           outputQuality,
