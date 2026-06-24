@@ -6,6 +6,7 @@ export interface Footprint {
   content?: string;
   address?: string;
   position?: string; // 格式：lng,lat
+  cover?: string;
   images?: string[];
   create_time: string;
 }
@@ -15,6 +16,7 @@ export interface CreateFootprintParams {
   content?: string;
   address?: string;
   position?: string; // 格式：lng,lat
+  cover?: string;
   images?: string[];
 }
 
@@ -23,6 +25,7 @@ export interface UpdateFootprintParams {
   content?: string;
   address?: string;
   position?: string; // 格式：lng,lat
+  cover?: string;
   images?: string[];
 }
 

@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Button, Modal, Form, Input, message, Card, Empty, Spin, Dropdown, Image, Select, Checkbox, Pagination } from 'antd';
-import { AiOutlineEdit, AiOutlineDelete, AiOutlineEllipsis, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
-import { useNavigate } from 'react-router';
-import { Tooltip } from '@heroui/react';
+import { Button, Modal, Form, Input, message, Card, Empty, Spin, Image, Select, Checkbox, Pagination, Table, Space, Tooltip } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
 import { getFootprintListAPI, createFootprintAPI, updateFootprintAPI, deleteFootprintAPI } from '@/api/footprint';
 import { getAlbumListAPI, getAlbumPhotosAPI } from '@/api/album';
 import type { Footprint, CreateFootprintParams, UpdateFootprintParams } from '@/types/footprint';
 import type { Album } from '@/types/album';
 import type { Photo } from '@/types/photo';
-import type { MenuProps } from 'antd';
 
 const { TextArea } = Input;
 
 export default () => {
-  const navigate = useNavigate();
   const [form] = Form.useForm();
+  const coverValue = Form.useWatch('cover', form);
+  const imagesValue = Form.useWatch('images', form);
   const [footprints, setFootprints] = useState<Footprint[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -32,6 +31,8 @@ export default () => {
   const [photosLimit, setPhotosLimit] = useState(24);
   const [photosTotal, setPhotosTotal] = useState(0);
   const [selectedPhotoUrls, setSelectedPhotoUrls] = useState<string[]>([]);
+  const [selectedCoverUrl, setSelectedCoverUrl] = useState<string | null>(null);
+  const [photoSelectMode, setPhotoSelectMode] = useState<'cover' | 'images'>('images');
   const [photoSearchKeyword, setPhotoSearchKeyword] = useState('');
   const [debouncedPhotoKeyword, setDebouncedPhotoKeyword] = useState('');
 
@@ -124,13 +125,16 @@ export default () => {
         content: footprint.content,
         address: footprint.address,
         position: footprint.position,
+        cover: footprint.cover,
         images: imageUrls,
       });
       setSelectedPhotoUrls(imageUrls);
+      setSelectedCoverUrl(footprint.cover || null);
     } else {
       setEditingFootprint(null);
       form.resetFields();
       setSelectedPhotoUrls([]);
+      setSelectedCoverUrl(null);
     }
     setIsModalOpen(true);
   };
@@ -143,6 +147,7 @@ export default () => {
 
       const params = {
         ...values,
+        cover: values.cover || undefined,
         images: images.length > 0 ? images : undefined,
       };
 
@@ -157,6 +162,7 @@ export default () => {
       }
       setIsModalOpen(false);
       setSelectedPhotoUrls([]);
+      setSelectedCoverUrl(null);
       loadFootprints();
     } catch (error: any) {
       if (error?.errorFields) {
@@ -167,24 +173,43 @@ export default () => {
   };
 
   // 打开选择照片弹窗
-  const handleOpenPhotoSelect = () => {
+  const handleOpenPhotoSelect = (mode: 'cover' | 'images') => {
+    setPhotoSelectMode(mode);
     setIsPhotoSelectModalOpen(true);
     loadAlbums();
-    // 初始化选中状态为当前表单中的图片URL
-    const currentImages = form.getFieldValue('images') || [];
-    setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages : []);
+
+    if (mode === 'cover') {
+      const currentCover = form.getFieldValue('cover') || null;
+      setSelectedCoverUrl(currentCover);
+      setSelectedPhotoUrls(currentCover ? [currentCover] : []);
+    } else {
+      const currentImages = form.getFieldValue('images') || [];
+      setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages : []);
+      setSelectedCoverUrl(null);
+    }
+
     setPhotosPage(1);
     setPhotoSearchKeyword('');
   };
 
   // 确认选择照片
   const handleConfirmPhotoSelect = () => {
-    form.setFieldsValue({ images: selectedPhotoUrls });
+    if (photoSelectMode === 'cover') {
+      form.setFieldsValue({ cover: selectedCoverUrl || undefined });
+    } else {
+      form.setFieldsValue({ images: selectedPhotoUrls });
+    }
     setIsPhotoSelectModalOpen(false);
   };
 
   // 切换照片选中状态
   const togglePhotoSelection = (photoUrl: string) => {
+    if (photoSelectMode === 'cover') {
+      setSelectedCoverUrl((prev) => (prev === photoUrl ? null : photoUrl));
+      setSelectedPhotoUrls((prev) => (prev[0] === photoUrl ? [] : [photoUrl]));
+      return;
+    }
+
     setSelectedPhotoUrls((prev) => (prev.includes(photoUrl) ? prev.filter((url) => url !== photoUrl) : [...prev, photoUrl]));
   };
 
@@ -199,50 +224,109 @@ export default () => {
     }
   };
 
-  // 查看足迹详情
-  const handleViewFootprint = (id: number) => {
-    navigate(`/footprints/${id}`);
-  };
-
-  // 获取操作菜单项
-  const getMenuItems = (footprint: Footprint): MenuProps['items'] => [
-    {
-      key: 'edit',
-      label: <span className="text-[15px]">编辑</span>,
-      icon: <AiOutlineEdit className="!text-xl" />,
-      onClick: (e) => {
-        e?.domEvent?.stopPropagation();
-        handleOpenModal(footprint);
-      },
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'delete',
-      label: <span className="text-[15px]">删除</span>,
-      icon: <AiOutlineDelete className="!text-xl" />,
-      danger: true,
-      onClick: (e) => {
-        e?.domEvent?.stopPropagation();
-        Modal.confirm({
-          title: '确定删除此足迹吗？',
-          content: '删除后将无法恢复',
-          okText: '确定',
-          cancelText: '取消',
-          okButtonProps: { danger: true },
-          onOk: () => handleDelete(footprint.id),
-        });
-      },
-    },
-  ];
-
   // 格式化位置坐标
   const formatPosition = (position?: string) => {
-    if (!position) return '未设置';
+    if (!position) return '-';
     const [lng, lat] = position.split(',');
-    return `经度: ${lng}, 纬度: ${lat}`;
+    return `${lng}, ${lat}`;
   };
+
+  const handleConfirmDelete = (footprint: Footprint) => {
+    Modal.confirm({
+      title: '确定删除此足迹吗？',
+      content: '删除后将无法恢复',
+      okText: '确定',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: () => handleDelete(footprint.id),
+    });
+  };
+
+  const getFootprintCover = (record: Footprint) => record.cover || record.images?.[0];
+
+  const columns: ColumnsType<Footprint> = [
+    {
+      title: '封面',
+      dataIndex: 'cover',
+      width: 80,
+      render: (_, record) => {
+        const coverUrl = getFootprintCover(record);
+        const imageCount = record.images?.length || 0;
+
+        return (
+          <div className="relative w-14 h-14 rounded overflow-hidden bg-gray-100">
+            {coverUrl ? (
+              <>
+                <Image src={coverUrl} alt={record.title} width={56} height={56} className="object-cover" preview={false} />
+                {imageCount > 1 && <div className="absolute top-0 right-0 bg-black/50 text-white text-xs px-1 rounded-bl">+{imageCount - 1}</div>}
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">无</div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: '标题',
+      dataIndex: 'title',
+      ellipsis: true,
+      render: (title: string) => <span className="font-medium">{title}</span>,
+    },
+    {
+      title: '内容',
+      dataIndex: 'content',
+      ellipsis: true,
+      render: (content?: string) => content || '-',
+    },
+    {
+      title: '地址',
+      dataIndex: 'address',
+      ellipsis: true,
+      render: (address?: string) => address || '-',
+    },
+    {
+      title: '坐标',
+      dataIndex: 'position',
+      width: 140,
+      ellipsis: true,
+      render: (position?: string) => formatPosition(position),
+    },
+    {
+      title: '图片数',
+      dataIndex: 'images',
+      width: 80,
+      align: 'center',
+      render: (images?: string[]) => images?.length || 0,
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'create_time',
+      width: 120,
+      render: (time: string) =>
+        new Date(time).toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 80,
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size={4}>
+          <Tooltip title="编辑">
+            <Button type="text" size="small" icon={<AiOutlineEdit className="text-base" />} onClick={() => handleOpenModal(record)} />
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button type="text" size="small" danger icon={<AiOutlineDelete className="text-base" />} onClick={() => handleConfirmDelete(record)} />
+          </Tooltip>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -262,104 +346,37 @@ export default () => {
         }
         className="[&_.ant-card-body]:min-h-[calc(100vh-180px)]"
       >
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Spin size="large" tip="加载中..." />
-          </div>
-        ) : footprints.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <span>
-                暂无足迹，点击
-                <Button type="link" onClick={() => handleOpenModal()}>
-                  创建足迹
-                </Button>
-              </span>
-            }
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {footprints.map((footprint) => (
-                <Tooltip
-                  key={footprint.id}
-                  content={
-                    <div className="px-1 py-2 max-w-xs">
-                      <div className="text-small font-semibold mb-2">{footprint.title}</div>
-                      {footprint.content && <div className="text-tiny leading-relaxed mb-2">{footprint.content}</div>}
-                      {footprint.address && <div className="text-tiny text-default-400 mb-1">📍 {footprint.address}</div>}
-                      {footprint.position && <div className="text-tiny text-default-400 mb-1">🗺️ {formatPosition(footprint.position)}</div>}
-                      <div className="text-tiny text-default-400 pt-2 border-t border-default-200">创建于 {new Date(footprint.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                    </div>
-                  }
-                  placement="top"
-                  delay={300}
-                  closeDelay={0}
-                  classNames={{
-                    base: 'max-w-md',
-                    content: 'bg-content1 border border-default-200 shadow-xl',
-                  }}
-                >
-                  <div className="relative group cursor-pointer" onClick={() => handleViewFootprint(footprint.id)}>
-                    <div className="bg-white rounded-xl p-4 transition-all hover:-translate-y-1 overflow-hidden shadow-sm hover:shadow-md">
-                      {/* 图片区域 */}
-                      {footprint.images && footprint.images.length > 0 ? (
-                        <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-3">
-                          <Image src={footprint.images[0]} alt={footprint.title} className="w-full h-full object-cover transition-transform group-hover:scale-110" preview={false} />
-                          {footprint.images.length > 1 && <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">+{footprint.images.length - 1}</div>}
-                        </div>
-                      ) : (
-                        <div className="w-full aspect-video rounded-lg bg-gray-100 flex items-center justify-center mb-3">
-                          <span className="text-gray-400 text-sm">暂无图片</span>
-                        </div>
-                      )}
-
-                      {/* 标题和内容 */}
-                      <div className="mb-2">
-                        <div className="text-gray-800 font-semibold truncate mb-1 group-hover:text-blue-500 transition-colors" title={footprint.title}>
-                          {footprint.title}
-                        </div>
-                        {footprint.content && (
-                          <div className="text-gray-600 text-sm line-clamp-2 mb-2" title={footprint.content}>
-                            {footprint.content}
-                          </div>
-                        )}
-                        {footprint.address && (
-                          <div className="text-gray-500 text-xs truncate mb-1" title={footprint.address}>
-                            📍 {footprint.address}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 操作按钮 */}
-                      <div className="absolute bottom-4 right-4 border transition-all rounded-md hidden group-hover:block">
-                        <Dropdown menu={{ items: getMenuItems(footprint) }} trigger={['click']}>
-                          <Button type="text" size="small" icon={<AiOutlineEllipsis />} className="bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl border-0" onClick={(e) => e.stopPropagation()} />
-                        </Dropdown>
-                      </div>
-                    </div>
-                  </div>
-                </Tooltip>
-              ))}
-            </div>
-
-            {/* 分页 */}
-            {total > pagination.limit && (
-              <div className="flex justify-center mt-8">
-                <Button disabled={pagination.page === 1} onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}>
-                  上一页
-                </Button>
-                <span className="mx-4 flex items-center">
-                  第 {pagination.page} / {Math.ceil(total / pagination.limit)} 页，共 {total} 个足迹
-                </span>
-                <Button disabled={pagination.page >= Math.ceil(total / pagination.limit)} onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}>
-                  下一页
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={footprints}
+          scroll={{ x: 1000 }}
+          pagination={{
+            current: pagination.page,
+            pageSize: pagination.limit,
+            total,
+            showSizeChanger: true,
+            showTotal: (count) => `共 ${count} 个足迹`,
+            pageSizeOptions: ['10', '20', '50'],
+            onChange: (page, pageSize) => setPagination({ page, limit: pageSize }),
+          }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span>
+                    暂无足迹，点击
+                    <Button type="link" onClick={() => handleOpenModal()}>
+                      创建足迹
+                    </Button>
+                  </span>
+                }
+              />
+            ),
+          }}
+        />
       </Card>
 
       {/* 创建/编辑弹窗 */}
@@ -385,21 +402,58 @@ export default () => {
             <Input placeholder="请输入位置坐标（可选）" />
           </Form.Item>
           <Form.Item
+            label="封面"
+            name="cover"
+            extra={
+              <div className="flex items-center justify-between mt-1">
+                <span>从相册中选择封面图片，未设置时将使用相册第一张</span>
+                <Space size={4}>
+                  {coverValue && (
+                    <Button
+                      type="link"
+                      size="small"
+                      danger
+                      onClick={() => {
+                        form.setFieldsValue({ cover: undefined });
+                        setSelectedCoverUrl(null);
+                      }}
+                    >
+                      清除封面
+                    </Button>
+                  )}
+                  <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('cover')}>
+                    选择封面
+                  </Button>
+                </Space>
+              </div>
+            }
+          >
+            <div className="min-h-[100px] border border-dashed border-gray-300 rounded p-3">
+              {coverValue ? (
+                <div className="w-32 aspect-square rounded overflow-hidden">
+                  <Image src={coverValue} alt="封面" className="w-full h-full object-cover" preview={false} />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-24 text-gray-400">暂无封面，点击「选择封面」从相册中选择</div>
+              )}
+            </div>
+          </Form.Item>
+          <Form.Item
             label="图片"
             name="images"
             extra={
               <div className="flex items-center justify-between mt-1">
                 <span>从相册中选择图片</span>
-                <Button type="link" size="small" onClick={handleOpenPhotoSelect}>
+                <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('images')}>
                   选择图片
                 </Button>
               </div>
             }
           >
             <div className="min-h-[100px] border border-dashed border-gray-300 rounded p-3">
-              {form.getFieldValue('images') && form.getFieldValue('images').length > 0 ? (
+              {imagesValue && imagesValue.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2">
-                  {(form.getFieldValue('images') || []).map((url: string, index: number) => (
+                  {imagesValue.map((url: string, index: number) => (
                     <div key={index} className="relative aspect-square rounded overflow-hidden">
                       <Image src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
                     </div>
@@ -415,12 +469,13 @@ export default () => {
 
       {/* 选择照片弹窗 */}
       <Modal
-        title="从相册选择图片"
+        title={photoSelectMode === 'cover' ? '从相册选择封面' : '从相册选择图片'}
         open={isPhotoSelectModalOpen}
         onOk={handleConfirmPhotoSelect}
         onCancel={() => {
           setIsPhotoSelectModalOpen(false);
           setSelectedPhotoUrls([]);
+          setSelectedCoverUrl(null);
           setPhotoSearchKeyword('');
         }}
         okText="确定"
@@ -435,12 +490,16 @@ export default () => {
               onChange={(value) => {
                 setSelectedAlbumId(value);
                 setPhotosPage(1);
-                setSelectedPhotoUrls([]);
+                if (photoSelectMode === 'images') {
+                  setSelectedPhotoUrls([]);
+                }
               }}
               style={{ width: 300 }}
               options={albums.map((album) => ({ label: album.name, value: album.id }))}
             />
-            <div className="text-gray-600">已选择 {selectedPhotoUrls.length} 张图片</div>
+            <div className="text-gray-600">
+              {photoSelectMode === 'cover' ? (selectedCoverUrl ? '已选择 1 张封面' : '未选择封面') : `已选择 ${selectedPhotoUrls.length} 张图片`}
+            </div>
           </div>
 
           {selectedAlbumId && (
@@ -457,13 +516,17 @@ export default () => {
                 <>
                   <div className="grid grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
                     {photos.map((photo) => {
-                      const isSelected = selectedPhotoUrls.includes(photo.url);
+                      const isSelected = photoSelectMode === 'cover' ? selectedCoverUrl === photo.url : selectedPhotoUrls.includes(photo.url);
                       return (
                         <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(photo.url)}>
                           <div className="h-32 rounded-lg overflow-hidden">
                             <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
                           </div>
-                          <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(photo.url)} />
+                          {photoSelectMode === 'images' ? (
+                            <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(photo.url)} />
+                          ) : (
+                            isSelected && <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">封面</div>
+                          )}
                           <div className={`p-2 bg-white text-xs truncate ${isSelected ? 'text-blue-500' : 'text-gray-700'}`}>{photo.name}</div>
                         </div>
                       );

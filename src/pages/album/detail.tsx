@@ -60,7 +60,6 @@ export default () => {
       setPhotos(data.result);
       setPhotosTotal(data.total);
     } catch {
-      message.error('加载照片列表失败');
     } finally {
       setLoading(false);
     }
@@ -81,7 +80,6 @@ export default () => {
       setAvailablePhotos(data.result);
       setAvailablePhotosTotal(data.total);
     } catch {
-      message.error('加载可添加照片失败');
     } finally {
       setAvailablePhotosLoading(false);
     }
@@ -131,7 +129,6 @@ export default () => {
       setSelectedPhotoIds([]);
       getAlbumPhotos();
     } catch {
-      message.error('绑定照片失败');
     }
   };
 
@@ -163,7 +160,6 @@ export default () => {
       setEditPhotoName('');
       getAlbumPhotos();
     } catch {
-      message.error('修改照片名称失败');
     }
   };
 

@@ -128,7 +128,6 @@ export default () => {
       if (error?.errorFields) {
         return; // 表单验证错误，不显示错误消息
       }
-      message.error('更新足迹失败');
     }
   };
 
