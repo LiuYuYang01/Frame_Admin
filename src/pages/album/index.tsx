@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Button, Modal, Form, Input, message, Card, Empty, Spin, Dropdown } from 'antd';
-import { AiOutlineEdit, AiOutlineDelete, AiOutlineEllipsis } from 'react-icons/ai';
+import { Button, Modal, Form, Input, message, Card, Empty, Spin, Dropdown, Checkbox, Pagination, Space } from 'antd';
+import { AiOutlineEdit, AiOutlineDelete, AiOutlineEllipsis, AiOutlineSearch } from 'react-icons/ai';
 import { useNavigate } from 'react-router';
 import { Tooltip } from '@heroui/react';
 import { getAlbumListAPI, createAlbumAPI, updateAlbumAPI, deleteAlbumAPI } from '@/api/album';
+import { getUnboundPhotosAPI, deletePhotoAPI } from '@/api/photo';
 import type { Album, CreateAlbumParams, UpdateAlbumParams } from '@/types/album';
+import type { Photo } from '@/types/photo';
 import type { MenuProps } from 'antd';
 import FileSvg from '@/assets/svg/file.svg';
-import { getCoverImageUrl } from '@/utils/image';
+import { getCoverImageUrl, getThumbImageUrl } from '@/utils/image';
 const { TextArea } = Input;
 
 export default () => {
@@ -17,6 +19,19 @@ export default () => {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
+  const [unboundPhotos, setUnboundPhotos] = useState<Photo[]>([]);
+  const [unboundPhotosLoading, setUnboundPhotosLoading] = useState(false);
+  const [unboundPhotosPage, setUnboundPhotosPage] = useState(1);
+  const [unboundPhotosLimit, setUnboundPhotosLimit] = useState(12);
+  const [unboundPhotosTotal, setUnboundPhotosTotal] = useState(0);
+  const [selectedUnboundPhotoIds, setSelectedUnboundPhotoIds] = useState<number[]>([]);
+  const [cleanupSearchKeyword, setCleanupSearchKeyword] = useState('');
+  const [debouncedCleanupKeyword, setDebouncedCleanupKeyword] = useState('');
+  const [cleanupActionLoading, setCleanupActionLoading] = useState(false);
+
+  const isAllUnboundPhotosSelected =
+    unboundPhotos.length > 0 && unboundPhotos.every((photo) => selectedUnboundPhotoIds.includes(photo.id));
 
   // 加载相册列表
   const loadAlbums = async () => {
@@ -31,9 +46,83 @@ export default () => {
     }
   };
 
+  const loadUnboundPhotos = async (page = unboundPhotosPage, limit = unboundPhotosLimit) => {
+    try {
+      setUnboundPhotosLoading(true);
+      const { data } = await getUnboundPhotosAPI({
+        page,
+        limit,
+        scene: 'thumb',
+        keyword: debouncedCleanupKeyword || undefined,
+      });
+      setUnboundPhotos(data.result);
+      setUnboundPhotosTotal(data.total);
+    } catch {
+    } finally {
+      setUnboundPhotosLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadAlbums();
   }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedCleanupKeyword(cleanupSearchKeyword.trim());
+    }, 300);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [cleanupSearchKeyword]);
+
+  useEffect(() => {
+    if (!isCleanupModalOpen) return;
+    loadUnboundPhotos(unboundPhotosPage, unboundPhotosLimit);
+  }, [isCleanupModalOpen, debouncedCleanupKeyword, unboundPhotosPage, unboundPhotosLimit]);
+
+  const openCleanupModal = () => {
+    setSelectedUnboundPhotoIds([]);
+    setCleanupSearchKeyword('');
+    setDebouncedCleanupKeyword('');
+    setUnboundPhotosPage(1);
+    setIsCleanupModalOpen(true);
+  };
+
+  const handleToggleSelectAllUnboundPhotos = () => {
+    if (isAllUnboundPhotosSelected) {
+      setSelectedUnboundPhotoIds([]);
+      return;
+    }
+    setSelectedUnboundPhotoIds(unboundPhotos.map((photo) => photo.id));
+  };
+
+  const handleDeleteUnboundPhotos = () => {
+    if (selectedUnboundPhotoIds.length === 0) {
+      message.warning('请选择要删除的照片');
+      return;
+    }
+
+    Modal.confirm({
+      title: `彻底删除 ${selectedUnboundPhotoIds.length} 张未绑定照片`,
+      content: '这些照片未关联任何相册，删除后不可恢复，请谨慎操作。',
+      okText: '彻底删除',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: async () => {
+        setCleanupActionLoading(true);
+        try {
+          await deletePhotoAPI(selectedUnboundPhotoIds);
+          message.success('未绑定照片已删除');
+          setSelectedUnboundPhotoIds([]);
+          await loadUnboundPhotos();
+        } catch {
+        } finally {
+          setCleanupActionLoading(false);
+        }
+      },
+    });
+  };
 
   // 打开创建/编辑弹窗
   const handleOpenModal = (album?: Album) => {
@@ -78,8 +167,25 @@ export default () => {
       message.success('删除相册成功');
       loadAlbums();
     } catch {
-      message.error('删除相册失败');
+      // 错误信息由 request 拦截器统一提示
     }
+  };
+
+  const handleDeleteAlbumClick = (album: Album) => {
+    const photoCount = album.photo_count ?? 0;
+    if (photoCount > 0) {
+      message.warning(`该相册内仍有 ${photoCount} 张绑定的照片，请先解除绑定后再删除`);
+      return;
+    }
+
+    Modal.confirm({
+      title: '确定删除此相册吗？',
+      content: '删除后将无法恢复',
+      okText: '确定',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: () => handleDelete(album.id),
+    });
   };
 
   // 查看相册详情
@@ -108,14 +214,7 @@ export default () => {
       danger: true,
       onClick: (e) => {
         e?.domEvent?.stopPropagation();
-        Modal.confirm({
-          title: '确定删除此相册吗？',
-          content: '删除后将无法恢复',
-          okText: '确定',
-          cancelText: '取消',
-          okButtonProps: { danger: true },
-          onOk: () => handleDelete(album.id),
-        });
+        handleDeleteAlbumClick(album);
       },
     },
   ];
@@ -129,9 +228,12 @@ export default () => {
           </div>
         }
         extra={
-          <Button type="primary" onClick={() => handleOpenModal()}>
-            创建相册
-          </Button>
+          <Space>
+            <Button onClick={openCleanupModal}>清理未绑定</Button>
+            <Button type="primary" onClick={() => handleOpenModal()}>
+              创建相册
+            </Button>
+          </Space>
         }
         className="[&_.ant-card-body]:min-h-[calc(100vh-180px)]"
       >
@@ -259,6 +361,115 @@ export default () => {
           </>
         )}
       </Card>
+
+      {/* 清理未绑定照片弹窗 */}
+      <Modal
+        title="清理未绑定照片"
+        open={isCleanupModalOpen}
+        width={900}
+        footer={null}
+        maskClosable
+        onCancel={() => {
+          setIsCleanupModalOpen(false);
+          setSelectedUnboundPhotoIds([]);
+          setCleanupSearchKeyword('');
+        }}
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Input
+            placeholder="搜索照片名称"
+            prefix={<AiOutlineSearch />}
+            value={cleanupSearchKeyword}
+            onChange={(e) => {
+              setCleanupSearchKeyword(e.target.value);
+              setUnboundPhotosPage(1);
+            }}
+            allowClear
+            className="!w-[300px]"
+          />
+
+          <Space wrap>
+            <span className="text-sm text-gray-600">
+              共 {unboundPhotosTotal} 张，已选 {selectedUnboundPhotoIds.length} 张
+            </span>
+            <Button type="link" size="small" onClick={handleToggleSelectAllUnboundPhotos}>
+              {isAllUnboundPhotosSelected ? '取消全选' : '全选当前页'}
+            </Button>
+            <Button
+              type="primary"
+              danger
+              disabled={selectedUnboundPhotoIds.length === 0}
+              loading={cleanupActionLoading}
+              onClick={handleDeleteUnboundPhotos}
+            >
+              删除所选
+            </Button>
+          </Space>
+        </div>
+
+        {unboundPhotosLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Spin />
+          </div>
+        ) : unboundPhotos.length === 0 ? (
+          <Empty description="没有未绑定任何相册的照片" />
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-4">
+              {unboundPhotos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="relative cursor-pointer"
+                  onClick={() => {
+                    setSelectedUnboundPhotoIds((prev) =>
+                      prev.includes(photo.id) ? prev.filter((item) => item !== photo.id) : [...prev, photo.id],
+                    );
+                  }}
+                >
+                  <div className="h-32 overflow-hidden rounded-lg">
+                    <img
+                      src={getThumbImageUrl(photo.url, photo.original_url)}
+                      alt={photo.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <Checkbox
+                    checked={selectedUnboundPhotoIds.includes(photo.id)}
+                    className="absolute top-2 right-2"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => {
+                      setSelectedUnboundPhotoIds((prev) =>
+                        prev.includes(photo.id) ? prev.filter((item) => item !== photo.id) : [...prev, photo.id],
+                      );
+                    }}
+                  />
+                  <div className={`truncate bg-white p-2 text-xs ${selectedUnboundPhotoIds.includes(photo.id) ? 'text-primary' : 'text-gray-700'}`}>
+                    {photo.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {unboundPhotosTotal > unboundPhotosLimit && (
+              <div className="mt-4 flex justify-center">
+                <Pagination
+                  current={unboundPhotosPage}
+                  pageSize={unboundPhotosLimit}
+                  total={unboundPhotosTotal}
+                  showSizeChanger
+                  showTotal={(total) => `共 ${total} 张`}
+                  pageSizeOptions={['12', '24', '56', '100']}
+                  onChange={(page, pageSize) => {
+                    setUnboundPhotosPage(page);
+                    setUnboundPhotosLimit(pageSize);
+                  }}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </Modal>
 
       {/* 创建/编辑弹窗 */}
       <Modal title={editingAlbum ? '编辑相册' : '创建相册'} open={isModalOpen} onOk={handleSubmit} onCancel={() => setIsModalOpen(false)} okText="确定" cancelText="取消" width={600}>

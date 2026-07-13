@@ -52,6 +52,15 @@ export const updatePhotoAPI = (id: number, params: UpdatePhotoParams) => {
 };
 
 /**
+ * 查询未绑定任何相册的照片
+ */
+export const getUnboundPhotosAPI = (params?: FilterParams & { keyword?: string; scene?: 'thumb' | 'grid' | 'preview' | 'cover' | 'placeholder' }) => {
+  return request<Paginate<Photo[]>>('GET', '/photo/unbound', {
+    params,
+  });
+};
+
+/**
  * 删除照片，支持批量
  * @param ids 需要删除的照片ID数组
  * @returns 删除结果
