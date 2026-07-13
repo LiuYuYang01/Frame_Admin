@@ -12,6 +12,7 @@ export interface Photo {
   width?: number;
   height?: number;
   type: string;
+  is_featured?: boolean;
   create_time: string;
   albums?: Album[];
 }
@@ -29,6 +30,7 @@ export interface CreatePhotoParams {
 export interface UpdatePhotoParams {
   name?: string;
   description?: string;
+  is_featured?: boolean;
 }
 
 export interface SlimPhotoParams {

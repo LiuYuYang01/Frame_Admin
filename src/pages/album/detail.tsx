@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination, Segmented } from 'antd';
-import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit, AiOutlineRocket } from 'react-icons/ai';
+import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit, AiOutlineRocket, AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
 import { updatePhotoAPI, deletePhotoAPI, previewSlimPhotosAPI, slimPhotosAPI } from '@/api/photo';
@@ -143,6 +143,17 @@ export default () => {
   const handleSlimPhoto = (photo: Photo, event: React.MouseEvent) => {
     event.stopPropagation();
     openSlimModal([photo.id]);
+  };
+
+  const handleToggleFeatured = async (photo: Photo, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const nextFeatured = !photo.is_featured;
+    try {
+      await updatePhotoAPI(photo.id, { is_featured: nextFeatured });
+      message.success(nextFeatured ? '已设为收藏' : '已取消收藏');
+      setPhotos((prev) => prev.map((item) => (item.id === photo.id ? { ...item, is_featured: nextFeatured } : item)));
+    } catch {
+    }
   };
 
   // 更新照片名称
@@ -505,9 +516,19 @@ export default () => {
                               previewSrc={getPreviewImageUrl(photo.url, photo.original_url)}
                             />
                             <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-10" />
+                            {photo.is_featured && (
+                              <AiFillStar className="absolute top-2 left-2 text-amber-400 drop-shadow z-20" size={18} />
+                            )}
                             {!isBulkSelectMode && (
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 z-20">
                                 <Space>
+                                  <Button
+                                    size="small"
+                                    icon={photo.is_featured ? <AiFillStar className="text-amber-400" /> : <AiOutlineStar />}
+                                    title={photo.is_featured ? '取消收藏' : '设为收藏'}
+                                    onClick={(event) => handleToggleFeatured(photo, event)}
+                                    className="shadow-lg"
+                                  />
                                   <Button
                                     size="small"
                                     icon={<AiOutlineRocket />}
