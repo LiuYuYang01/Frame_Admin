@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Modal, message } from 'antd';
-import { updateProfileAPI } from '@/api';
+import { Form, Input, Modal, Upload, message, Spin } from 'antd';
+import { FiCamera } from 'react-icons/fi';
+import { updateProfileAPI, uploadAvatarAPI } from '@/api';
 import { useUserStore } from '@/stores';
+import { compressImage } from '@/utils/compressImage';
 
 interface ProfileModalProps {
   open: boolean;
@@ -16,13 +18,18 @@ interface ProfileFormValues {
   confirm_password?: string;
 }
 
+const AVATAR_MAX_LONG_EDGE = 512;
+
 export default ({ open, onClose }: ProfileModalProps) => {
   const [form] = Form.useForm<ProfileFormValues>();
   const { user, setUser } = useUserStore();
   const [saving, setSaving] = useState(false);
+  const [avatar, setAvatar] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setAvatar(user?.avatar || '');
     form.setFieldsValue({
       username: user?.username || '',
       name: user?.name || '',
@@ -32,6 +39,33 @@ export default ({ open, onClose }: ProfileModalProps) => {
     });
   }, [open, user, form]);
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      message.error('请选择图片文件');
+      return false;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const { file: compressed } = await compressImage(file, {
+        quality: 80,
+        maxLongEdge: AVATAR_MAX_LONG_EDGE,
+      });
+      const { data } = await uploadAvatarAPI(compressed);
+      if (data) {
+        setAvatar(data.avatar);
+        setUser(data);
+      }
+      message.success('头像更新成功');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setAvatarUploading(false);
+    }
+
+    return false;
+  };
+
   const onFinish = async (values: ProfileFormValues) => {
     setSaving(true);
     try {
@@ -40,9 +74,9 @@ export default ({ open, onClose }: ProfileModalProps) => {
         name: values.name,
         ...(values.new_password
           ? {
-              old_password: values.old_password,
-              new_password: values.new_password,
-            }
+            old_password: values.old_password,
+            new_password: values.new_password,
+          }
           : {}),
       };
 
@@ -57,6 +91,8 @@ export default ({ open, onClose }: ProfileModalProps) => {
     }
   };
 
+  const avatarFallback = user?.name?.charAt(0) || user?.username?.charAt(0) || 'F';
+
   return (
     <Modal
       title="个人中心"
@@ -68,13 +104,44 @@ export default ({ open, onClose }: ProfileModalProps) => {
       destroyOnHidden
       onOk={() => form.submit()}
     >
+      <div className="mt-4 flex flex-col items-center">
+        <Upload
+          accept="image/*"
+          showUploadList={false}
+          disabled={avatarUploading}
+          beforeUpload={handleAvatarUpload}
+        >
+          <div className="group relative cursor-pointer">
+            <Spin spinning={avatarUploading}>
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={user?.name || 'avatar'}
+                  className="size-20 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex size-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-white">
+                  {avatarFallback}
+                </div>
+              )}
+            </Spin>
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <FiCamera className="size-5 text-white" />
+            </div>
+          </div>
+        </Upload>
+        <p className="mt-2 text-xs text-gray-500">点击头像更换，支持 jpg、png、webp 等格式</p>
+      </div>
+
       <Form form={form} layout="vertical" onFinish={onFinish} className="mt-4">
-        <Form.Item name="username" label="账号" rules={[{ required: true, message: '请输入账号' }]}>
-          <Input placeholder="请输入登录账号" autoComplete="off" />
-        </Form.Item>
         <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
           <Input placeholder="请输入显示名称" autoComplete="off" />
         </Form.Item>
+
+        <Form.Item name="username" label="账号" rules={[{ required: true, message: '请输入账号' }]}>
+          <Input placeholder="请输入登录账号" autoComplete="off" />
+        </Form.Item>
+
         <Form.Item
           name="old_password"
           label="当前密码"

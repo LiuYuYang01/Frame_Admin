@@ -20,3 +20,19 @@ export const updateProfileAPI = (params: UpdateProfileParams) => {
     data: params,
   });
 };
+
+/**
+ * 上传头像
+ */
+export const uploadAvatarAPI = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return request<UserInfo>('POST', '/user/avatar', {
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+};

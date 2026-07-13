@@ -17,10 +17,34 @@ export const instance = axios.create({
 
 // 用于取消请求
 const CancelToken = axios.CancelToken;
-const source = CancelToken.source();
+let cancelSource = CancelToken.source();
+
+// 取消进行中的请求并重建 CancelToken，避免后续请求（如重新登录）被永久阻断
+const cancelPendingRequests = () => {
+  cancelSource.cancel('认证失败，取消所有请求');
+  cancelSource = CancelToken.source();
+};
 
 // 标记是否已经处理过401错误
 let isHandling401Error = false;
+
+const handleUnauthorized = () => {
+  if (isHandling401Error) return;
+
+  isHandling401Error = true;
+  cancelPendingRequests();
+
+  Modal.error({
+    title: '暂无权限',
+    content: '🔒️ 登录已过期，请重新登录?',
+    okText: '去登录',
+    onOk: () => {
+      const store = useUserStore.getState();
+      store.quitLogin();
+      isHandling401Error = false;
+    },
+  });
+};
 
 // 请求拦截
 instance.interceptors.request.use(
@@ -48,22 +72,7 @@ instance.interceptors.response.use(
   (res: AxiosResponse) => {
     // 如果code为401就证明认证失败
     if (res.data?.code === 401) {
-      isHandling401Error = true; // 标记为正在处理401错误
-
-      Modal.error({
-        title: '暂无权限',
-        content: '🔒️ 登录已过期，请重新登录?',
-        okText: '去登录',
-        onOk: () => {
-          const store = useUserStore.getState();
-          store.quitLogin();
-          isHandling401Error = false; // 重置标记
-        },
-      });
-
-      // 取消后续的所有请求
-      source.cancel('认证失败，取消所有请求');
-
+      handleUnauthorized();
       return Promise.reject(res.data);
     }
 
@@ -80,7 +89,14 @@ instance.interceptors.response.use(
     return res.data;
   },
   (err: AxiosError) => {
-    if (isHandling401Error) return;
+    // 主动取消的请求（如 401 后批量取消）不提示错误
+    if (axios.isCancel(err)) {
+      return Promise.reject(err);
+    }
+
+    if (isHandling401Error) {
+      return Promise.reject(err);
+    }
 
     notification.error({
       message: '程序异常',
@@ -96,7 +112,7 @@ const request = <T>(method: string, url: string, reqParams?: object) => {
     method,
     url,
     ...reqParams,
-    cancelToken: source.token,
+    cancelToken: cancelSource.token,
   });
 };
 

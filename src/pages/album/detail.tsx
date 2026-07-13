@@ -65,7 +65,7 @@ export default () => {
     }
   };
 
-  // 加载待添加照片（排除当前相册已有的，或仅未绑定任何相册的）
+  // 加载可绑定照片
   const getPhotosExcludeFromAlbum = async (page = availablePhotosPage, limit = availablePhotosLimit) => {
     if (!id) return;
     try {
@@ -75,7 +75,7 @@ export default () => {
         limit,
         scene: 'thumb',
         keyword: debouncedKeyword || undefined,
-        unbound_only: photoFilterMode === 'unbound',
+        ...(photoFilterMode === 'unbound' ? { unbound_only: true } : {}),
       });
       setAvailablePhotos(data.result);
       setAvailablePhotosTotal(data.total);
@@ -384,7 +384,7 @@ export default () => {
               <Button type={isBulkSelectMode ? 'primary' : 'default'} danger={isBulkSelectMode} onClick={toggleBulkSelectMode}>
                 {isBulkSelectMode ? '退出批量' : '批量选择'}
               </Button>
-              
+
               <Button type="primary" onClick={() => setIsUploadModalOpen(true)}>
                 上传照片
               </Button>
@@ -436,129 +436,129 @@ export default () => {
               )}
 
               <PreviewImageGroup>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
-                {photos.map((photo) => {
-                  const isSelected = selectedAlbumPhotoIds.includes(photo.id);
-                  return (
-                    <Tooltip
-                      key={photo.id}
-                      content={
-                        <div className="px-1 py-2">
-                          <div className="text-tiny text-default-400 mt-1">
-                            <div className="flex space-x-2">
-                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片名称：</span>
-                              <span className="line-clamp-1 text-gray-600">{photo.name}</span>
-                            </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
+                  {photos.map((photo) => {
+                    const isSelected = selectedAlbumPhotoIds.includes(photo.id);
+                    return (
+                      <Tooltip
+                        key={photo.id}
+                        content={
+                          <div className="px-1 py-2">
+                            <div className="text-tiny text-default-400 mt-1">
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片名称：</span>
+                                <span className="line-clamp-1 text-gray-600">{photo.name}</span>
+                              </div>
 
-                            <div className="flex space-x-2">
-                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片尺寸：</span>
-                              <span className="text-gray-600">{photo.width && photo.height ? `${photo.width} × ${photo.height}` : '未知'}</span>
-                            </div>
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片尺寸：</span>
+                                <span className="text-gray-600">{photo.width && photo.height ? `${photo.width} × ${photo.height}` : '未知'}</span>
+                              </div>
 
-                            <div className="flex space-x-2">
-                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片大小：</span>
-                              <span className="text-gray-600">{formatFileSize(photo.size)}</span>
-                            </div>
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片大小：</span>
+                                <span className="text-gray-600">{formatFileSize(photo.size)}</span>
+                              </div>
 
-                            <div className="flex space-x-2">
-                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片类型：</span>
-                              <span className="text-gray-600">{photo.type ? photo.type.toUpperCase() : '未知'}</span>
-                            </div>
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片类型：</span>
+                                <span className="text-gray-600">{photo.type ? photo.type.toUpperCase() : '未知'}</span>
+                              </div>
 
-                            <div className="flex space-x-2">
-                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片时间：</span>
-                              <span className="text-gray-600">{new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                            </div>
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片时间：</span>
+                                <span className="text-gray-600">{new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                              </div>
 
-                            <div className="flex space-x-2">
-                              <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片描述：</span>
-                              <span className="line-clamp-1 text-gray-600">{photo.description || '---'}</span>
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片描述：</span>
+                                <span className="line-clamp-1 text-gray-600">{photo.description || '---'}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      }
-                      placement="top"
-                      delay={300}
-                      closeDelay={0}
-                      classNames={{
-                        base: 'max-w-md',
-                        content: 'bg-content1 border border-default-200 shadow-xl',
-                      }}
-                    >
-                      <div
-                        className={`relative group ${isBulkSelectMode ? 'cursor-pointer' : ''}`}
-                        onClick={() => {
-                          if (isBulkSelectMode) {
-                            toggleAlbumPhotoSelection(photo.id);
-                          }
+                        }
+                        placement="top"
+                        delay={300}
+                        closeDelay={0}
+                        classNames={{
+                          base: 'max-w-md',
+                          content: 'bg-content1 border border-default-200 shadow-xl',
                         }}
                       >
-                        <div className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-md transition-all duration-300 ${isBulkSelectMode && isSelected ? 'ring-4 ring-blue-500' : 'hover:shadow-xl'}`}>
-                          <PreviewImage
-                            src={getThumbImageUrl(photo.url, photo.original_url)}
-                            alt={photo.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="!absolute !inset-0 !w-full !h-full !object-cover"
-                            wrapperClassName="!absolute !inset-0 !w-full !h-full"
-                            preview={isBulkSelectMode ? false : undefined}
-                            previewSrc={getPreviewImageUrl(photo.url, photo.original_url)}
-                          />
-                          <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-10" />
-                          {!isBulkSelectMode && (
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 z-20">
-                              <Space>
-                                <Button
-                                  size="small"
-                                  icon={<AiOutlineRocket />}
-                                  title="瘦身"
-                                  loading={slimRunning && slimTargetIds.includes(photo.id)}
-                                  disabled={slimPreviewLoading || slimRunning}
-                                  onClick={(event) => handleSlimPhoto(photo, event)}
-                                  className="shadow-lg"
-                                />
-                                <Button
-                                  size="small"
-                                  type="primary"
-                                  icon={<AiOutlineEdit />}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleEditPhoto(photo);
-                                  }}
-                                  className="shadow-lg"
-                                />
-                                <Button
-                                  type="primary"
-                                  danger
-                                  size="small"
-                                  icon={<AiOutlineDelete />}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleDeletePhoto(photo);
-                                  }}
-                                  className="shadow-lg"
-                                />
-                              </Space>
-                            </div>
-                          )}
-                          {isBulkSelectMode && (
-                            <Checkbox
-                              checked={isSelected}
-                              className="absolute top-2 right-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleAlbumPhotoSelection(photo.id);
-                              }}
+                        <div
+                          className={`relative group ${isBulkSelectMode ? 'cursor-pointer' : ''}`}
+                          onClick={() => {
+                            if (isBulkSelectMode) {
+                              toggleAlbumPhotoSelection(photo.id);
+                            }
+                          }}
+                        >
+                          <div className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-md transition-all duration-300 ${isBulkSelectMode && isSelected ? 'ring-4 ring-blue-500' : 'hover:shadow-xl'}`}>
+                            <PreviewImage
+                              src={getThumbImageUrl(photo.url, photo.original_url)}
+                              alt={photo.name}
+                              loading="lazy"
+                              decoding="async"
+                              className="!absolute !inset-0 !w-full !h-full !object-cover"
+                              wrapperClassName="!absolute !inset-0 !w-full !h-full"
+                              preview={isBulkSelectMode ? false : undefined}
+                              previewSrc={getPreviewImageUrl(photo.url, photo.original_url)}
                             />
-                          )}
-                          {isBulkSelectMode && isSelected && <div className="absolute inset-0 bg-blue-500/10 z-10" />}
+                            <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-10" />
+                            {!isBulkSelectMode && (
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 z-20">
+                                <Space>
+                                  <Button
+                                    size="small"
+                                    icon={<AiOutlineRocket />}
+                                    title="瘦身"
+                                    loading={slimRunning && slimTargetIds.includes(photo.id)}
+                                    disabled={slimPreviewLoading || slimRunning}
+                                    onClick={(event) => handleSlimPhoto(photo, event)}
+                                    className="shadow-lg"
+                                  />
+                                  <Button
+                                    size="small"
+                                    type="primary"
+                                    icon={<AiOutlineEdit />}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleEditPhoto(photo);
+                                    }}
+                                    className="shadow-lg"
+                                  />
+                                  <Button
+                                    type="primary"
+                                    danger
+                                    size="small"
+                                    icon={<AiOutlineDelete />}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleDeletePhoto(photo);
+                                    }}
+                                    className="shadow-lg"
+                                  />
+                                </Space>
+                              </div>
+                            )}
+                            {isBulkSelectMode && (
+                              <Checkbox
+                                checked={isSelected}
+                                className="absolute top-2 right-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAlbumPhotoSelection(photo.id);
+                                }}
+                              />
+                            )}
+                            {isBulkSelectMode && isSelected && <div className="absolute inset-0 bg-blue-500/10 z-10" />}
+                          </div>
+                          <div className={`mt-2 text-sm text-gray-700 truncate px-1 font-medium ${isSelected && '!text-primary'}`}>{photo.name}</div>
                         </div>
-                        <div className={`mt-2 text-sm text-gray-700 truncate px-1 font-medium ${isSelected && '!text-primary'}`}>{photo.name}</div>
-                      </div>
-                    </Tooltip>
-                  );
-                })}
-              </div>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
               </PreviewImageGroup>
 
               {photosTotal > photosLimit && (
@@ -614,7 +614,7 @@ export default () => {
               value={photoFilterMode}
               options={[
                 { label: '未加入本相册', value: 'exclude' },
-                { label: '未绑定相册', value: 'unbound' },
+                { label: '未绑定', value: 'unbound' },
               ]}
               onChange={(value) => {
                 setPhotoFilterMode(value as 'exclude' | 'unbound');
@@ -632,7 +632,7 @@ export default () => {
             <Spin />
           </div>
         ) : availablePhotos.length === 0 ? (
-          <Empty description={photoFilterMode === 'unbound' ? '没有未绑定任何相册的照片' : '没有可添加的照片'} />
+          <Empty description={photoFilterMode === 'unbound' ? '没有未绑定任何相册的照片' : '没有未加入本相册的照片'} />
         ) : (
           <>
             <div className="pr-2">
