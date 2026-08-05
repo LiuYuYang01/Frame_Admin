@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Button, message, Spin, Empty, Modal, Form, Input, Descriptions, Select, Checkbox, Pagination } from 'antd';
-import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineEdit, AiOutlineEnvironment, AiOutlineSearch } from 'react-icons/ai';
+import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineEdit, AiOutlineEnvironment, AiOutlineSearch, AiOutlineClose } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getFootprintDetailAPI, updateFootprintAPI, deleteFootprintAPI } from '@/api/footprint';
 import { getAlbumListAPI, getAlbumPhotosAPI } from '@/api/album';
@@ -31,6 +31,26 @@ export default () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
+  const normalizePhotoUrl = (url?: string | null) => {
+    if (!url) return '';
+    const [baseUrl] = url.split('?r=');
+    return baseUrl || url;
+  };
+
+  const getPhotoValueUrl = (photo: Photo) => normalizePhotoUrl(photo.original_url || photo.url);
+
+  const resolveDefaultAlbumId = (albumList: Album[], address?: string) => {
+    if (!albumList.length) return null;
+    const normalizedAddress = (address || '').trim();
+    if (!normalizedAddress) return albumList[0].id;
+
+    const exactMatch = albumList.find((album) => album.name.trim() === normalizedAddress);
+    if (exactMatch) return exactMatch.id;
+
+    const fuzzyMatch = albumList.find((album) => normalizedAddress.includes(album.name.trim()) || album.name.trim().includes(normalizedAddress));
+    return fuzzyMatch?.id ?? albumList[0].id;
+  };
+
   // 加载足迹详情
   const loadFootprint = async () => {
     if (!id) return;
@@ -38,7 +58,7 @@ export default () => {
       setLoading(true);
       const { data } = await getFootprintDetailAPI(Number(id));
       setFootprint(data);
-      const imageUrls = data.images || [];
+      const imageUrls = (data.images || []).map((url) => normalizePhotoUrl(url)).filter(Boolean);
       form.setFieldsValue({
         title: data.title,
         content: data.content,
@@ -60,13 +80,12 @@ export default () => {
   }, [id]);
 
   // 加载相册列表
-  const loadAlbums = async () => {
+  const loadAlbums = async (preferredAddress?: string) => {
     try {
       const { data } = await getAlbumListAPI({ page: 1, limit: 100 });
-      setAlbums(data.result);
-      if (data.result.length > 0 && !selectedAlbumId) {
-        setSelectedAlbumId(data.result[0].id);
-      }
+      const albumList = data.result || [];
+      setAlbums(albumList);
+      setSelectedAlbumId(resolveDefaultAlbumId(albumList, preferredAddress));
     } catch {
       message.error('加载相册列表失败');
     }
@@ -113,7 +132,7 @@ export default () => {
     if (!id) return;
     try {
       const values = await form.validateFields();
-      const images = values.images && Array.isArray(values.images) ? values.images.filter((url: string) => url) : [];
+      const images = values.images && Array.isArray(values.images) ? values.images.map((url: string) => normalizePhotoUrl(url)).filter((url: string) => url) : [];
 
       const params = {
         ...values,
@@ -134,10 +153,11 @@ export default () => {
   // 打开选择照片弹窗
   const handleOpenPhotoSelect = () => {
     setIsPhotoSelectModalOpen(true);
-    loadAlbums();
+    const currentAddress = (form.getFieldValue('address') as string | undefined)?.trim();
+    loadAlbums(currentAddress);
     // 初始化选中状态为当前表单中的图片URL
     const currentImages = form.getFieldValue('images') || [];
-    setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages : []);
+    setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages.map((url: string) => normalizePhotoUrl(url)).filter(Boolean) : []);
     setPhotosPage(1);
     setSearchKeyword('');
   };
@@ -151,7 +171,8 @@ export default () => {
 
   // 切换照片选中状态
   const togglePhotoSelection = (photoUrl: string) => {
-    setSelectedPhotoUrls((prev) => (prev.includes(photoUrl) ? prev.filter((url) => url !== photoUrl) : [...prev, photoUrl]));
+    const normalizedUrl = normalizePhotoUrl(photoUrl);
+    setSelectedPhotoUrls((prev) => (prev.includes(normalizedUrl) ? prev.filter((url) => url !== normalizedUrl) : [...prev, normalizedUrl]));
   };
 
   // 删除足迹
@@ -183,6 +204,17 @@ export default () => {
     // 使用高德地图或百度地图
     const url = `https://uri.amap.com/marker?position=${lng},${lat}`;
     window.open(url, '_blank');
+  };
+
+  // 从表单中移除单张图片
+  const handleRemoveImage = (targetUrl: string) => {
+    const currentImages = form.getFieldValue('images') || [];
+    const normalizedTarget = normalizePhotoUrl(targetUrl);
+    const nextImages = Array.isArray(currentImages)
+      ? currentImages.map((url: string) => normalizePhotoUrl(url)).filter((url: string) => url && url !== normalizedTarget)
+      : [];
+    form.setFieldsValue({ images: nextImages });
+    setSelectedPhotoUrls(nextImages);
   };
 
   if (loading) {
@@ -332,8 +364,17 @@ export default () => {
               {form.getFieldValue('images') && form.getFieldValue('images').length > 0 ? (
                 <div className="grid grid-cols-4 gap-2">
                   {(form.getFieldValue('images') || []).map((url: string, index: number) => (
-                    <div key={index} className="relative aspect-square rounded overflow-hidden">
+                    <div key={index} className="group relative aspect-square rounded overflow-hidden">
                       <PreviewImage src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
+                      <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+                      <Button
+                        type="text"
+                        size="small"
+                        shape="circle"
+                        icon={<AiOutlineClose />}
+                        className="!absolute top-1.5 right-1.5 !w-6 !h-6 !min-w-0 !p-0 !text-white !bg-black/55 hover:!bg-red-500 hover:!text-white !opacity-0 group-hover:!opacity-100 !transition-all"
+                        onClick={() => handleRemoveImage(url)}
+                      />
                     </div>
                   ))}
                 </div>
@@ -394,13 +435,14 @@ export default () => {
                 <>
                   <div className="grid grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
                     {photos.map((photo) => {
-                      const isSelected = selectedPhotoUrls.includes(photo.url);
+                      const valueUrl = getPhotoValueUrl(photo);
+                      const isSelected = selectedPhotoUrls.includes(valueUrl);
                       return (
-                        <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(photo.url)}>
+                        <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(valueUrl)}>
                           <div className="h-32 rounded-lg overflow-hidden">
                             <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
                           </div>
-                          <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(photo.url)} />
+                          <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(valueUrl)} />
                           <div className={`p-2 bg-white text-xs truncate ${isSelected ? 'text-blue-500' : 'text-gray-700'}`}>{photo.name}</div>
                         </div>
                       );

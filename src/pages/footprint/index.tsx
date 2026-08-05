@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button, Modal, Form, Input, message, Card, Empty, Spin, Image, Select, Checkbox, Pagination, Table, Space, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
+import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus, AiOutlineClose } from 'react-icons/ai';
 import { getFootprintListAPI, createFootprintAPI, updateFootprintAPI, deleteFootprintAPI } from '@/api/footprint';
 import { getAlbumListAPI, getAlbumPhotosAPI } from '@/api/album';
 import type { Footprint, CreateFootprintParams, UpdateFootprintParams } from '@/types/footprint';
@@ -36,6 +36,26 @@ export default () => {
   const [photoSearchKeyword, setPhotoSearchKeyword] = useState('');
   const [debouncedPhotoKeyword, setDebouncedPhotoKeyword] = useState('');
 
+  const normalizePhotoUrl = (url?: string | null) => {
+    if (!url) return '';
+    const [baseUrl] = url.split('?r=');
+    return baseUrl || url;
+  };
+
+  const getPhotoValueUrl = (photo: Photo) => normalizePhotoUrl(photo.original_url || photo.url);
+
+  const resolveDefaultAlbumId = (albumList: Album[], address?: string) => {
+    if (!albumList.length) return null;
+    const normalizedAddress = (address || '').trim();
+    if (!normalizedAddress) return albumList[0].id;
+
+    const exactMatch = albumList.find((album) => album.name.trim() === normalizedAddress);
+    if (exactMatch) return exactMatch.id;
+
+    const fuzzyMatch = albumList.find((album) => normalizedAddress.includes(album.name.trim()) || album.name.trim().includes(normalizedAddress));
+    return fuzzyMatch?.id ?? albumList[0].id;
+  };
+
   // 防抖处理搜索关键词
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -67,13 +87,12 @@ export default () => {
   }, [pagination, debouncedKeyword]);
 
   // 加载相册列表
-  const loadAlbums = async () => {
+  const loadAlbums = async (preferredAddress?: string) => {
     try {
       const { data } = await getAlbumListAPI({ page: 1, limit: 100 });
-      setAlbums(data.result);
-      if (data.result.length > 0 && !selectedAlbumId) {
-        setSelectedAlbumId(data.result[0].id);
-      }
+      const albumList = data.result || [];
+      setAlbums(albumList);
+      setSelectedAlbumId(resolveDefaultAlbumId(albumList, preferredAddress));
     } catch {
       message.error('加载相册列表失败');
     }
@@ -119,17 +138,18 @@ export default () => {
   const handleOpenModal = (footprint?: Footprint) => {
     if (footprint) {
       setEditingFootprint(footprint);
-      const imageUrls = footprint.images || [];
+      const imageUrls = (footprint.images || []).map((url) => normalizePhotoUrl(url)).filter(Boolean);
+      const coverUrl = normalizePhotoUrl(footprint.cover);
       form.setFieldsValue({
         title: footprint.title,
         content: footprint.content,
         address: footprint.address,
         position: footprint.position,
-        cover: footprint.cover,
+        cover: coverUrl || undefined,
         images: imageUrls,
       });
       setSelectedPhotoUrls(imageUrls);
-      setSelectedCoverUrl(footprint.cover || null);
+      setSelectedCoverUrl(coverUrl || null);
     } else {
       setEditingFootprint(null);
       form.resetFields();
@@ -143,11 +163,12 @@ export default () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const images = values.images && Array.isArray(values.images) ? values.images.filter((url: string) => url) : [];
+      const images = values.images && Array.isArray(values.images) ? values.images.map((url: string) => normalizePhotoUrl(url)).filter((url: string) => url) : [];
+      const cover = normalizePhotoUrl(values.cover);
 
       const params = {
         ...values,
-        cover: values.cover || undefined,
+        cover: cover || undefined,
         images: images.length > 0 ? images : undefined,
       };
 
@@ -176,15 +197,16 @@ export default () => {
   const handleOpenPhotoSelect = (mode: 'cover' | 'images') => {
     setPhotoSelectMode(mode);
     setIsPhotoSelectModalOpen(true);
-    loadAlbums();
+    const currentAddress = (form.getFieldValue('address') as string | undefined)?.trim();
+    loadAlbums(currentAddress);
 
     if (mode === 'cover') {
-      const currentCover = form.getFieldValue('cover') || null;
+      const currentCover = normalizePhotoUrl(form.getFieldValue('cover')) || null;
       setSelectedCoverUrl(currentCover);
       setSelectedPhotoUrls(currentCover ? [currentCover] : []);
     } else {
       const currentImages = form.getFieldValue('images') || [];
-      setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages : []);
+      setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages.map((url: string) => normalizePhotoUrl(url)).filter(Boolean) : []);
       setSelectedCoverUrl(null);
     }
 
@@ -204,13 +226,14 @@ export default () => {
 
   // 切换照片选中状态
   const togglePhotoSelection = (photoUrl: string) => {
+    const normalizedUrl = normalizePhotoUrl(photoUrl);
     if (photoSelectMode === 'cover') {
-      setSelectedCoverUrl((prev) => (prev === photoUrl ? null : photoUrl));
-      setSelectedPhotoUrls((prev) => (prev[0] === photoUrl ? [] : [photoUrl]));
+      setSelectedCoverUrl((prev) => (prev === normalizedUrl ? null : normalizedUrl));
+      setSelectedPhotoUrls((prev) => (prev[0] === normalizedUrl ? [] : [normalizedUrl]));
       return;
     }
 
-    setSelectedPhotoUrls((prev) => (prev.includes(photoUrl) ? prev.filter((url) => url !== photoUrl) : [...prev, photoUrl]));
+    setSelectedPhotoUrls((prev) => (prev.includes(normalizedUrl) ? prev.filter((url) => url !== normalizedUrl) : [...prev, normalizedUrl]));
   };
 
   // 删除足迹
@@ -243,6 +266,17 @@ export default () => {
   };
 
   const getFootprintCover = (record: Footprint) => record.cover || record.images?.[0];
+
+  // 从表单中移除单张图片
+  const handleRemoveImage = (targetUrl: string) => {
+    const currentImages = form.getFieldValue('images') || [];
+    const normalizedTarget = normalizePhotoUrl(targetUrl);
+    const nextImages = Array.isArray(currentImages)
+      ? currentImages.map((url: string) => normalizePhotoUrl(url)).filter((url: string) => url && url !== normalizedTarget)
+      : [];
+    form.setFieldsValue({ images: nextImages });
+    setSelectedPhotoUrls(nextImages);
+  };
 
   const columns: ColumnsType<Footprint> = [
     {
@@ -380,90 +414,107 @@ export default () => {
       </Card>
 
       {/* 创建/编辑弹窗 */}
-      <Modal title={editingFootprint ? '编辑足迹' : '创建足迹'} open={isModalOpen} onOk={handleSubmit} onCancel={() => setIsModalOpen(false)} okText="确定" cancelText="取消" width={600}>
+      <Modal title={editingFootprint ? '编辑足迹' : '创建足迹'} open={isModalOpen} onOk={handleSubmit} onCancel={() => setIsModalOpen(false)} okText="确定" cancelText="取消" width={980}>
         <Form form={form} layout="vertical" className="mt-4">
-          <Form.Item
-            label="标题"
-            name="title"
-            rules={[
-              { required: true, message: '请输入标题' },
-              { max: 100, message: '标题不能超过100个字符' },
-            ]}
-          >
-            <Input placeholder="请输入标题" />
-          </Form.Item>
-          <Form.Item label="内容描述" name="content" rules={[{ max: 500, message: '内容描述不能超过500个字符' }]}>
-            <TextArea rows={4} placeholder="请输入内容描述（可选）" />
-          </Form.Item>
-          <Form.Item label="地址" name="address" rules={[{ max: 200, message: '地址不能超过200个字符' }]}>
-            <Input placeholder="请输入地址（可选）" />
-          </Form.Item>
-          <Form.Item label="位置坐标" name="position" rules={[{ pattern: /^-?\d+\.?\d*,-?\d+\.?\d*$/, message: '格式错误，请输入：经度,纬度（例如：120.135,30.259）' }]} extra="格式：经度,纬度（例如：120.135,30.259）">
-            <Input placeholder="请输入位置坐标（可选）" />
-          </Form.Item>
-          <Form.Item
-            label="封面"
-            name="cover"
-            extra={
-              <div className="flex items-center justify-between mt-1">
-                <span>从相册中选择封面图片，未设置时将使用相册第一张</span>
-                <Space size={4}>
-                  {coverValue && (
-                    <Button
-                      type="link"
-                      size="small"
-                      danger
-                      onClick={() => {
-                        form.setFieldsValue({ cover: undefined });
-                        setSelectedCoverUrl(null);
-                      }}
-                    >
-                      清除封面
-                    </Button>
-                  )}
-                  <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('cover')}>
-                    选择封面
-                  </Button>
-                </Space>
-              </div>
-            }
-          >
-            <div className="min-h-[100px] border border-dashed border-gray-300 rounded p-3">
-              {coverValue ? (
-                <div className="w-32 aspect-square rounded overflow-hidden">
-                  <Image src={coverValue} alt="封面" className="w-full h-full object-cover" preview={false} />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-24 text-gray-400">暂无封面，点击「选择封面」从相册中选择</div>
-              )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="border border-gray-200 rounded-lg p-4">
+              <Form.Item
+                label="标题"
+                name="title"
+                rules={[
+                  { required: true, message: '请输入标题' },
+                  { max: 100, message: '标题不能超过100个字符' },
+                ]}
+              >
+                <Input placeholder="请输入标题" />
+              </Form.Item>
+              <Form.Item label="内容描述" name="content" rules={[{ max: 500, message: '内容描述不能超过500个字符' }]}>
+                <TextArea rows={4} placeholder="请输入内容描述（可选）" />
+              </Form.Item>
+              <Form.Item label="地址" name="address" rules={[{ max: 200, message: '地址不能超过200个字符' }]}>
+                <Input placeholder="请输入地址（可选）" />
+              </Form.Item>
+              <Form.Item label="位置坐标" name="position" rules={[{ pattern: /^-?\d+\.?\d*,-?\d+\.?\d*$/, message: '格式错误，请输入：经度,纬度（例如：120.135,30.259）' }]} extra="格式：经度,纬度（例如：120.135,30.259）" className="mb-0">
+                <Input placeholder="请输入位置坐标（可选）" />
+              </Form.Item>
             </div>
-          </Form.Item>
-          <Form.Item
-            label="图片"
-            name="images"
-            extra={
-              <div className="flex items-center justify-between mt-1">
-                <span>从相册中选择图片</span>
-                <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('images')}>
-                  选择图片
-                </Button>
-              </div>
-            }
-          >
-            <div className="min-h-[100px] border border-dashed border-gray-300 rounded p-3">
-              {imagesValue && imagesValue.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2">
-                  {imagesValue.map((url: string, index: number) => (
-                    <div key={index} className="relative aspect-square rounded overflow-hidden">
-                      <Image src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
+
+            <div className="border border-gray-200 rounded-lg p-4">
+              <Form.Item
+                label="封面"
+                name="cover"
+                extra={
+                  <div className="flex items-center justify-between mt-1">
+                    <span>从相册中选择封面图片，未设置时将使用相册第一张</span>
+                    <Space size={4}>
+                      {coverValue && (
+                        <Button
+                          type="link"
+                          size="small"
+                          danger
+                          onClick={() => {
+                            form.setFieldsValue({ cover: undefined });
+                            setSelectedCoverUrl(null);
+                          }}
+                        >
+                          清除封面
+                        </Button>
+                      )}
+                      <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('cover')}>
+                        选择封面
+                      </Button>
+                    </Space>
+                  </div>
+                }
+              >
+                <div className="min-h-[120px] border border-dashed border-gray-300 rounded p-3">
+                  {coverValue ? (
+                    <div className="w-32 aspect-square rounded overflow-hidden">
+                      <Image src={coverValue} alt="封面" className="w-full h-full object-cover" preview={false} />
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex items-center justify-center h-24 text-gray-400">暂无封面，点击「选择封面」从相册中选择</div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex items-center justify-center h-24 text-gray-400">暂无图片，点击"选择图片"按钮从相册中选择</div>
-              )}
+              </Form.Item>
+              <Form.Item
+                label="图片"
+                name="images"
+                extra={
+                  <div className="flex items-center justify-between mt-1">
+                    <span>从相册中选择图片</span>
+                    <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('images')}>
+                      选择图片
+                    </Button>
+                  </div>
+                }
+                className="mb-0"
+              >
+                <div className="min-h-[120px] border border-dashed border-gray-300 rounded p-3">
+                  {imagesValue && imagesValue.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {imagesValue.map((url: string, index: number) => (
+                        <div key={index} className="group relative aspect-square rounded overflow-hidden">
+                          <Image src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
+                          <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+                          <Button
+                            type="text"
+                            size="small"
+                            shape="circle"
+                            icon={<AiOutlineClose />}
+                            className="!absolute top-1.5 right-1.5 !w-6 !h-6 !min-w-0 !p-0 !text-white !bg-black/55 hover:!bg-red-500 hover:!text-white !opacity-0 group-hover:!opacity-100 !transition-all"
+                            onClick={() => handleRemoveImage(url)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-24 text-gray-400">暂无图片，点击"选择图片"按钮从相册中选择</div>
+                  )}
+                </div>
+              </Form.Item>
             </div>
-          </Form.Item>
+          </div>
         </Form>
       </Modal>
 
@@ -516,14 +567,15 @@ export default () => {
                 <>
                   <div className="grid grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
                     {photos.map((photo) => {
-                      const isSelected = photoSelectMode === 'cover' ? selectedCoverUrl === photo.url : selectedPhotoUrls.includes(photo.url);
+                      const valueUrl = getPhotoValueUrl(photo);
+                      const isSelected = photoSelectMode === 'cover' ? selectedCoverUrl === valueUrl : selectedPhotoUrls.includes(valueUrl);
                       return (
-                        <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(photo.url)}>
+                        <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(valueUrl)}>
                           <div className="h-32 rounded-lg overflow-hidden">
                             <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
                           </div>
                           {photoSelectMode === 'images' ? (
-                            <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(photo.url)} />
+                            <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(valueUrl)} />
                           ) : (
                             isSelected && <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">封面</div>
                           )}
