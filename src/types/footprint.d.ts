@@ -7,7 +7,9 @@ export interface Footprint {
   address?: string;
   position?: string; // 格式：lng,lat
   cover?: string;
-  images?: string[];
+  album_id?: number;
+  album_name?: string; // 列表/详情接口附带
+  album_cover?: string; // 列表/详情接口附带
   create_time: string;
 }
 
@@ -17,7 +19,7 @@ export interface CreateFootprintParams {
   address?: string;
   position?: string; // 格式：lng,lat
   cover?: string;
-  images?: string[];
+  album_id?: number;
 }
 
 export interface UpdateFootprintParams {
@@ -26,7 +28,7 @@ export interface UpdateFootprintParams {
   address?: string;
   position?: string; // 格式：lng,lat
   cover?: string;
-  images?: string[];
+  album_id?: number;
 }
 
 export interface QueryFootprintParams extends FilterParams {

@@ -1,19 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Button, Modal, Form, Input, message, Card, Empty, Spin, Image, Select, Checkbox, Pagination, Table, Space, Tooltip } from 'antd';
+import { Button, Modal, Form, Input, message, Card, Empty, Spin, Image, Select, Table, Space, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus, AiOutlineClose } from 'react-icons/ai';
+import { AiOutlineEdit, AiOutlineDelete, AiOutlineSearch, AiOutlinePlus } from 'react-icons/ai';
 import { getFootprintListAPI, createFootprintAPI, updateFootprintAPI, deleteFootprintAPI } from '@/api/footprint';
-import { getAlbumListAPI, getAlbumPhotosAPI } from '@/api/album';
+import { getAlbumListAPI } from '@/api/album';
 import type { Footprint, CreateFootprintParams, UpdateFootprintParams } from '@/types/footprint';
 import type { Album } from '@/types/album';
-import type { Photo } from '@/types/photo';
 
 const { TextArea } = Input;
 
 export default () => {
   const [form] = Form.useForm();
-  const coverValue = Form.useWatch('cover', form);
-  const imagesValue = Form.useWatch('images', form);
   const [footprints, setFootprints] = useState<Footprint[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -22,39 +19,8 @@ export default () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 10 });
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [isPhotoSelectModalOpen, setIsPhotoSelectModalOpen] = useState(false);
   const [albums, setAlbums] = useState<Album[]>([]);
-  const [selectedAlbumId, setSelectedAlbumId] = useState<number | null>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [photosLoading, setPhotosLoading] = useState(false);
-  const [photosPage, setPhotosPage] = useState(1);
-  const [photosLimit, setPhotosLimit] = useState(24);
-  const [photosTotal, setPhotosTotal] = useState(0);
-  const [selectedPhotoUrls, setSelectedPhotoUrls] = useState<string[]>([]);
-  const [selectedCoverUrl, setSelectedCoverUrl] = useState<string | null>(null);
-  const [photoSelectMode, setPhotoSelectMode] = useState<'cover' | 'images'>('images');
-  const [photoSearchKeyword, setPhotoSearchKeyword] = useState('');
-  const [debouncedPhotoKeyword, setDebouncedPhotoKeyword] = useState('');
-
-  const normalizePhotoUrl = (url?: string | null) => {
-    if (!url) return '';
-    const [baseUrl] = url.split('?r=');
-    return baseUrl || url;
-  };
-
-  const getPhotoValueUrl = (photo: Photo) => normalizePhotoUrl(photo.original_url || photo.url);
-
-  const resolveDefaultAlbumId = (albumList: Album[], address?: string) => {
-    if (!albumList.length) return null;
-    const normalizedAddress = (address || '').trim();
-    if (!normalizedAddress) return albumList[0].id;
-
-    const exactMatch = albumList.find((album) => album.name.trim() === normalizedAddress);
-    if (exactMatch) return exactMatch.id;
-
-    const fuzzyMatch = albumList.find((album) => normalizedAddress.includes(album.name.trim()) || album.name.trim().includes(normalizedAddress));
-    return fuzzyMatch?.id ?? albumList[0].id;
-  };
+  const [albumsLoading, setAlbumsLoading] = useState(false);
 
   // 防抖处理搜索关键词
   useEffect(() => {
@@ -86,154 +52,64 @@ export default () => {
     loadFootprints();
   }, [pagination, debouncedKeyword]);
 
-  // 加载相册列表
-  const loadAlbums = async (preferredAddress?: string) => {
+  // 加载相册列表（供下拉选择）
+  const loadAlbums = async () => {
     try {
-      const { data } = await getAlbumListAPI({ page: 1, limit: 100 });
-      const albumList = data.result || [];
-      setAlbums(albumList);
-      setSelectedAlbumId(resolveDefaultAlbumId(albumList, preferredAddress));
+      setAlbumsLoading(true);
+      const { data } = await getAlbumListAPI({ page: 1, limit: 200 });
+      setAlbums(data.result || []);
     } catch {
       message.error('加载相册列表失败');
-    }
-  };
-
-  // 加载相册照片
-  const loadAlbumPhotos = async (albumId: number, page = photosPage, limit = photosLimit) => {
-    try {
-      setPhotosLoading(true);
-      const { data } = await getAlbumPhotosAPI(albumId, {
-        page,
-        limit,
-        width: 300,
-        height: 300,
-        keyword: debouncedPhotoKeyword || undefined,
-      });
-      setPhotos(data.result);
-      setPhotosTotal(data.total);
-    } catch {
-      message.error('加载照片列表失败');
     } finally {
-      setPhotosLoading(false);
+      setAlbumsLoading(false);
     }
   };
-
-  // 防抖处理照片搜索关键词
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedPhotoKeyword(photoSearchKeyword.trim());
-      setPhotosPage(1);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [photoSearchKeyword]);
-
-  // 当相册ID或搜索关键词变化时加载照片
-  useEffect(() => {
-    if (selectedAlbumId && isPhotoSelectModalOpen) {
-      loadAlbumPhotos(selectedAlbumId, photosPage, photosLimit);
-    }
-  }, [selectedAlbumId, photosPage, photosLimit, debouncedPhotoKeyword, isPhotoSelectModalOpen]);
 
   // 打开创建/编辑弹窗
   const handleOpenModal = (footprint?: Footprint) => {
     if (footprint) {
       setEditingFootprint(footprint);
-      const imageUrls = (footprint.images || []).map((url) => normalizePhotoUrl(url)).filter(Boolean);
-      const coverUrl = normalizePhotoUrl(footprint.cover);
       form.setFieldsValue({
         title: footprint.title,
         content: footprint.content,
         address: footprint.address,
         position: footprint.position,
-        cover: coverUrl || undefined,
-        images: imageUrls,
+        cover: footprint.cover,
+        album_id: footprint.album_id,
       });
-      setSelectedPhotoUrls(imageUrls);
-      setSelectedCoverUrl(coverUrl || null);
     } else {
       setEditingFootprint(null);
       form.resetFields();
-      setSelectedPhotoUrls([]);
-      setSelectedCoverUrl(null);
     }
     setIsModalOpen(true);
+    loadAlbums();
   };
 
   // 提交表单
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const images = values.images && Array.isArray(values.images) ? values.images.map((url: string) => normalizePhotoUrl(url)).filter((url: string) => url) : [];
-      const cover = normalizePhotoUrl(values.cover);
-
       const params = {
         ...values,
-        cover: cover || undefined,
-        images: images.length > 0 ? images : undefined,
+        cover: values.cover || undefined,
+        album_id: values.album_id || undefined,
       };
 
       if (editingFootprint) {
-        // 编辑
         await updateFootprintAPI(editingFootprint.id, params as UpdateFootprintParams);
         message.success('更新足迹成功');
       } else {
-        // 创建
         await createFootprintAPI(params as CreateFootprintParams);
         message.success('创建足迹成功');
       }
       setIsModalOpen(false);
-      setSelectedPhotoUrls([]);
-      setSelectedCoverUrl(null);
       loadFootprints();
     } catch (error: any) {
       if (error?.errorFields) {
-        return; // 表单验证错误，不显示错误消息
+        return;
       }
       message.error(editingFootprint ? '更新足迹失败' : '创建足迹失败');
     }
-  };
-
-  // 打开选择照片弹窗
-  const handleOpenPhotoSelect = (mode: 'cover' | 'images') => {
-    setPhotoSelectMode(mode);
-    setIsPhotoSelectModalOpen(true);
-    const currentAddress = (form.getFieldValue('address') as string | undefined)?.trim();
-    loadAlbums(currentAddress);
-
-    if (mode === 'cover') {
-      const currentCover = normalizePhotoUrl(form.getFieldValue('cover')) || null;
-      setSelectedCoverUrl(currentCover);
-      setSelectedPhotoUrls(currentCover ? [currentCover] : []);
-    } else {
-      const currentImages = form.getFieldValue('images') || [];
-      setSelectedPhotoUrls(Array.isArray(currentImages) ? currentImages.map((url: string) => normalizePhotoUrl(url)).filter(Boolean) : []);
-      setSelectedCoverUrl(null);
-    }
-
-    setPhotosPage(1);
-    setPhotoSearchKeyword('');
-  };
-
-  // 确认选择照片
-  const handleConfirmPhotoSelect = () => {
-    if (photoSelectMode === 'cover') {
-      form.setFieldsValue({ cover: selectedCoverUrl || undefined });
-    } else {
-      form.setFieldsValue({ images: selectedPhotoUrls });
-    }
-    setIsPhotoSelectModalOpen(false);
-  };
-
-  // 切换照片选中状态
-  const togglePhotoSelection = (photoUrl: string) => {
-    const normalizedUrl = normalizePhotoUrl(photoUrl);
-    if (photoSelectMode === 'cover') {
-      setSelectedCoverUrl((prev) => (prev === normalizedUrl ? null : normalizedUrl));
-      setSelectedPhotoUrls((prev) => (prev[0] === normalizedUrl ? [] : [normalizedUrl]));
-      return;
-    }
-
-    setSelectedPhotoUrls((prev) => (prev.includes(normalizedUrl) ? prev.filter((url) => url !== normalizedUrl) : [...prev, normalizedUrl]));
   };
 
   // 删除足迹
@@ -265,18 +141,7 @@ export default () => {
     });
   };
 
-  const getFootprintCover = (record: Footprint) => record.cover || record.images?.[0];
-
-  // 从表单中移除单张图片
-  const handleRemoveImage = (targetUrl: string) => {
-    const currentImages = form.getFieldValue('images') || [];
-    const normalizedTarget = normalizePhotoUrl(targetUrl);
-    const nextImages = Array.isArray(currentImages)
-      ? currentImages.map((url: string) => normalizePhotoUrl(url)).filter((url: string) => url && url !== normalizedTarget)
-      : [];
-    form.setFieldsValue({ images: nextImages });
-    setSelectedPhotoUrls(nextImages);
-  };
+  const getFootprintCover = (record: Footprint) => record.cover || record.album_cover;
 
   const columns: ColumnsType<Footprint> = [
     {
@@ -285,15 +150,10 @@ export default () => {
       width: 80,
       render: (_, record) => {
         const coverUrl = getFootprintCover(record);
-        const imageCount = record.images?.length || 0;
-
         return (
           <div className="relative w-14 h-14 rounded overflow-hidden bg-gray-100">
             {coverUrl ? (
-              <>
-                <Image src={coverUrl} alt={record.title} width={56} height={56} className="object-cover" preview={false} />
-                {imageCount > 1 && <div className="absolute top-0 right-0 bg-black/50 text-white text-xs px-1 rounded-bl">+{imageCount - 1}</div>}
-              </>
+              <Image src={coverUrl} alt={record.title} width={56} height={56} className="object-cover" preview={false} />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">无</div>
             )}
@@ -327,11 +187,11 @@ export default () => {
       render: (position?: string) => formatPosition(position),
     },
     {
-      title: '图片数',
-      dataIndex: 'images',
-      width: 80,
-      align: 'center',
-      render: (images?: string[]) => images?.length || 0,
+      title: '关联相册',
+      dataIndex: 'album_name',
+      width: 140,
+      ellipsis: true,
+      render: (albumName?: string) => albumName || <span className="text-gray-400">未关联</span>,
     },
     {
       title: '创建时间',
@@ -414,198 +274,42 @@ export default () => {
       </Card>
 
       {/* 创建/编辑弹窗 */}
-      <Modal title={editingFootprint ? '编辑足迹' : '创建足迹'} open={isModalOpen} onOk={handleSubmit} onCancel={() => setIsModalOpen(false)} okText="确定" cancelText="取消" width={980}>
+      <Modal title={editingFootprint ? '编辑足迹' : '创建足迹'} open={isModalOpen} onOk={handleSubmit} onCancel={() => setIsModalOpen(false)} okText="确定" cancelText="取消" width={600}>
         <Form form={form} layout="vertical" className="mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="border border-gray-200 rounded-lg p-4">
-              <Form.Item
-                label="标题"
-                name="title"
-                rules={[
-                  { required: true, message: '请输入标题' },
-                  { max: 100, message: '标题不能超过100个字符' },
-                ]}
-              >
-                <Input placeholder="请输入标题" />
-              </Form.Item>
-              <Form.Item label="内容描述" name="content" rules={[{ max: 500, message: '内容描述不能超过500个字符' }]}>
-                <TextArea rows={4} placeholder="请输入内容描述（可选）" />
-              </Form.Item>
-              <Form.Item label="地址" name="address" rules={[{ max: 200, message: '地址不能超过200个字符' }]}>
-                <Input placeholder="请输入地址（可选）" />
-              </Form.Item>
-              <Form.Item label="位置坐标" name="position" rules={[{ pattern: /^-?\d+\.?\d*,-?\d+\.?\d*$/, message: '格式错误，请输入：经度,纬度（例如：120.135,30.259）' }]} extra="格式：经度,纬度（例如：120.135,30.259）" className="mb-0">
-                <Input placeholder="请输入位置坐标（可选）" />
-              </Form.Item>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4">
-              <Form.Item
-                label="封面"
-                name="cover"
-                extra={
-                  <div className="flex items-center justify-between mt-1">
-                    <span>从相册中选择封面图片，未设置时将使用相册第一张</span>
-                    <Space size={4}>
-                      {coverValue && (
-                        <Button
-                          type="link"
-                          size="small"
-                          danger
-                          onClick={() => {
-                            form.setFieldsValue({ cover: undefined });
-                            setSelectedCoverUrl(null);
-                          }}
-                        >
-                          清除封面
-                        </Button>
-                      )}
-                      <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('cover')}>
-                        选择封面
-                      </Button>
-                    </Space>
-                  </div>
-                }
-              >
-                <div className="min-h-[120px] border border-dashed border-gray-300 rounded p-3">
-                  {coverValue ? (
-                    <div className="w-32 aspect-square rounded overflow-hidden">
-                      <Image src={coverValue} alt="封面" className="w-full h-full object-cover" preview={false} />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-24 text-gray-400">暂无封面，点击「选择封面」从相册中选择</div>
-                  )}
-                </div>
-              </Form.Item>
-              <Form.Item
-                label="图片"
-                name="images"
-                extra={
-                  <div className="flex items-center justify-between mt-1">
-                    <span>从相册中选择图片</span>
-                    <Button type="link" size="small" onClick={() => handleOpenPhotoSelect('images')}>
-                      选择图片
-                    </Button>
-                  </div>
-                }
-                className="mb-0"
-              >
-                <div className="min-h-[120px] border border-dashed border-gray-300 rounded p-3">
-                  {imagesValue && imagesValue.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      {imagesValue.map((url: string, index: number) => (
-                        <div key={index} className="group relative aspect-square rounded overflow-hidden">
-                          <Image src={url} alt={`图片 ${index + 1}`} className="w-full h-full object-cover" preview={false} />
-                          <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
-                          <Button
-                            type="text"
-                            size="small"
-                            shape="circle"
-                            icon={<AiOutlineClose />}
-                            className="!absolute top-1.5 right-1.5 !w-6 !h-6 !min-w-0 !p-0 !text-white !bg-black/55 hover:!bg-red-500 hover:!text-white !opacity-0 group-hover:!opacity-100 !transition-all"
-                            onClick={() => handleRemoveImage(url)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-24 text-gray-400">暂无图片，点击"选择图片"按钮从相册中选择</div>
-                  )}
-                </div>
-              </Form.Item>
-            </div>
-          </div>
-        </Form>
-      </Modal>
-
-      {/* 选择照片弹窗 */}
-      <Modal
-        title={photoSelectMode === 'cover' ? '从相册选择封面' : '从相册选择图片'}
-        open={isPhotoSelectModalOpen}
-        onOk={handleConfirmPhotoSelect}
-        onCancel={() => {
-          setIsPhotoSelectModalOpen(false);
-          setSelectedPhotoUrls([]);
-          setSelectedCoverUrl(null);
-          setPhotoSearchKeyword('');
-        }}
-        okText="确定"
-        cancelText="取消"
-        width={900}
-      >
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <Form.Item
+            label="标题"
+            name="title"
+            rules={[
+              { required: true, message: '请输入标题' },
+              { max: 100, message: '标题不能超过100个字符' },
+            ]}
+          >
+            <Input placeholder="请输入标题" />
+          </Form.Item>
+          <Form.Item label="内容描述" name="content" rules={[{ max: 500, message: '内容描述不能超过500个字符' }]}>
+            <TextArea rows={4} placeholder="请输入内容描述（可选）" />
+          </Form.Item>
+          <Form.Item label="地址" name="address" rules={[{ max: 200, message: '地址不能超过200个字符' }]}>
+            <Input placeholder="请输入地址（可选）" />
+          </Form.Item>
+          <Form.Item label="位置坐标" name="position" rules={[{ pattern: /^-?\d+\.?\d*,-?\d+\.?\d*$/, message: '格式错误，请输入：经度,纬度（例如：120.135,30.259）' }]} extra="格式：经度,纬度（例如：120.135,30.259）">
+            <Input placeholder="请输入位置坐标（可选）" />
+          </Form.Item>
+          <Form.Item label="关联相册" name="album_id" extra="选择相册后，前端足迹详情将展示该相册中的照片，并支持一键跳转">
             <Select
-              placeholder="选择相册"
-              value={selectedAlbumId}
-              onChange={(value) => {
-                setSelectedAlbumId(value);
-                setPhotosPage(1);
-                if (photoSelectMode === 'images') {
-                  setSelectedPhotoUrls([]);
-                }
-              }}
-              style={{ width: 300 }}
+              placeholder="请选择关联相册（可选）"
+              allowClear
+              loading={albumsLoading}
+              notFoundContent={albumsLoading ? <Spin size="small" /> : '暂无相册'}
               options={albums.map((album) => ({ label: album.name, value: album.id }))}
+              showSearch
+              optionFilterProp="label"
             />
-            <div className="text-gray-600">
-              {photoSelectMode === 'cover' ? (selectedCoverUrl ? '已选择 1 张封面' : '未选择封面') : `已选择 ${selectedPhotoUrls.length} 张图片`}
-            </div>
-          </div>
-
-          {selectedAlbumId && (
-            <>
-              <Input placeholder="搜索照片名称" prefix={<AiOutlineSearch />} value={photoSearchKeyword} onChange={(e) => setPhotoSearchKeyword(e.target.value)} allowClear />
-
-              {photosLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Spin />
-                </div>
-              ) : photos.length === 0 ? (
-                <Empty description="该相册暂无照片" />
-              ) : (
-                <>
-                  <div className="grid grid-cols-4 gap-4 max-h-[400px] overflow-y-auto p-2">
-                    {photos.map((photo) => {
-                      const valueUrl = getPhotoValueUrl(photo);
-                      const isSelected = photoSelectMode === 'cover' ? selectedCoverUrl === valueUrl : selectedPhotoUrls.includes(valueUrl);
-                      return (
-                        <div key={photo.id} className={`relative cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`} onClick={() => togglePhotoSelection(valueUrl)}>
-                          <div className="h-32 rounded-lg overflow-hidden">
-                            <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
-                          </div>
-                          {photoSelectMode === 'images' ? (
-                            <Checkbox checked={isSelected} className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()} onChange={() => togglePhotoSelection(valueUrl)} />
-                          ) : (
-                            isSelected && <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">封面</div>
-                          )}
-                          <div className={`p-2 bg-white text-xs truncate ${isSelected ? 'text-blue-500' : 'text-gray-700'}`}>{photo.name}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {photosTotal > photosLimit && (
-                    <div className="flex justify-center">
-                      <Pagination
-                        current={photosPage}
-                        pageSize={photosLimit}
-                        total={photosTotal}
-                        showSizeChanger
-                        showTotal={(total) => `共 ${total} 张`}
-                        pageSizeOptions={['12', '24', '48', '96']}
-                        onChange={(page, pageSize) => {
-                          setPhotosPage(page);
-                          setPhotosLimit(pageSize);
-                        }}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
-          {!selectedAlbumId && <Empty description="请先选择相册" />}
-        </div>
+          </Form.Item>
+          <Form.Item label="封面图片URL" name="cover" rules={[{ max: 500, message: 'URL不能超过500个字符' }]} extra="留空则使用关联相册的封面">
+            <Input placeholder="请输入封面图片URL（可选）" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );
