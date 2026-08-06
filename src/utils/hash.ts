@@ -3,7 +3,7 @@ import SparkMD5 from 'spark-md5';
 const CHUNK_SIZE = 2 * 1024 * 1024;
 
 /**
- * 计算文件 MD5（与后端一致，用于秒传和对象 key）
+ * 计算文件 MD5（与后端一致，用于秒传去重）
  */
 export function calculateFileMD5(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
