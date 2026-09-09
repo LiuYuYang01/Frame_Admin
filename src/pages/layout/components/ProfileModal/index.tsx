@@ -130,7 +130,7 @@ export default ({ open, onClose }: ProfileModalProps) => {
             </div>
           </div>
         </Upload>
-        <p className="mt-2 text-xs text-gray-500">点击头像更换，支持 jpg、png、webp 等格式</p>
+        <p className="mt-2 text-xs text-ink-faint">点击头像更换，支持 jpg、png、webp 等格式</p>
       </div>
 
       <Form form={form} layout="vertical" onFinish={onFinish} className="mt-4">

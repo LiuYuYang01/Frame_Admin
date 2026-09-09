@@ -52,26 +52,26 @@ export default () => {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-[rgba(255,255,255,0.5)] backdrop-blur-xs rounded-3xl shadow-2xl p-8 border border-white/20">
+        <div className="bg-panel/60 backdrop-blur-xs rounded-3xl shadow-2xl p-8 border border-line">
           <div className="flex justify-center space-x-4 mb-8">
             <img src={LogoSvg} alt="" className="w-12 h-12" />
             <div className="flex flex-col">
-              <h1 className="font-bold text-lg text-slate-700">Frame</h1>
-              <p className="text-slate-400 text-sm">图片管理系统</p>
+              <h1 className="font-bold text-lg text-ink">Frame</h1>
+              <p className="text-ink-faint text-sm">图片管理系统</p>
             </div>
           </div>
 
           <Form form={form} size="large" layout="vertical" onFinish={onSubmit} className="space-y-1">
-            <Form.Item name="username" label={<span className="text-gray-700 font-medium">账号</span>} rules={[{ required: true, message: '请输入账号' }]}>
-              <Input prefix={<UserOutlined className="text-gray-400" />} placeholder="请输入用户名" className="h-12 rounded-xl border-gray-200 hover:border-blue-400 focus:border-blue-500 transition-colors" />
+            <Form.Item name="username" label={<span className="text-ink-muted font-medium">账号</span>} rules={[{ required: true, message: '请输入账号' }]}>
+              <Input prefix={<UserOutlined className="text-ink-faint" />} placeholder="请输入用户名" className="h-12 rounded-xl" />
             </Form.Item>
 
-            <Form.Item name="password" label={<span className="text-gray-700 font-medium">密码</span>} rules={[{ required: true, message: '请输入密码' }]}>
+            <Form.Item name="password" label={<span className="text-ink-muted font-medium">密码</span>} rules={[{ required: true, message: '请输入密码' }]}>
               <Input.Password
-                prefix={<LockOutlined className="text-gray-400" />}
+                prefix={<LockOutlined className="text-ink-faint" />}
                 type={isPassVisible ? 'text' : 'password'}
                 placeholder="请输入密码"
-                className="h-12 rounded-xl border-gray-200 hover:border-blue-400 focus:border-blue-500 transition-colors"
+                className="h-12 rounded-xl"
                 iconRender={(visible) =>
                   visible ? <EyeOutlined onClick={() => setIsPassVisible(!isPassVisible)} /> : <EyeInvisibleOutlined onClick={() => setIsPassVisible(!isPassVisible)} />
                 }
@@ -87,7 +87,7 @@ export default () => {
         </div>
 
         <div className="text-center mt-4">
-          <p className="text-gray-500 text-sm">让美好回忆井然有序</p>
+          <p className="text-ink-muted text-sm">让美好回忆井然有序</p>
         </div>
       </div>
     </div>

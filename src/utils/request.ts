@@ -46,6 +46,11 @@ const handleUnauthorized = () => {
   });
 };
 
+// 扩展请求配置，silent 为 true 时不弹出全局错误提示（由页面自行处理）
+interface RequestConfig extends InternalAxiosRequestConfig {
+  silent?: boolean;
+}
+
 // 请求拦截
 instance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -78,10 +83,12 @@ instance.interceptors.response.use(
 
     // 只要code不等于200, 就相当于响应失败
     if (res.data?.code !== 200) {
-      notification.error({
-        message: '错误',
-        description: res.data?.message || '未知错误',
-      });
+      if (!(res.config as RequestConfig).silent) {
+        notification.error({
+          message: '错误',
+          description: res.data?.message || '未知错误',
+        });
+      }
 
       return Promise.reject(res.data);
     }
@@ -98,10 +105,12 @@ instance.interceptors.response.use(
       return Promise.reject(err);
     }
 
-    notification.error({
-      message: '程序异常',
-      description: err.message || '未知错误',
-    });
+    if (!(err.config as RequestConfig | undefined)?.silent) {
+      notification.error({
+        message: '程序异常',
+        description: err.message || '未知错误',
+      });
+    }
 
     return Promise.reject(err);
   }

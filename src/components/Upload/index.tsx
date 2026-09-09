@@ -48,7 +48,7 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
         <div>
           <label className="block mb-2 font-medium">输出质量</label>
           <Select placeholder="请选择输出质量" value={quality} onChange={setQuality} style={{ width: '100%' }} size="large" options={IMAGE_QUALITY_SELECT_OPTIONS} />
-          <p className="text-sm text-gray-500 mt-2">自适应会根据图片自动选档；固定档位数值越高越清晰，越低越省空间。</p>
+          <p className="text-sm text-ink-faint mt-2">自适应会根据图片自动选档；固定档位数值越高越清晰，越低越省空间。</p>
         </div>
         <Alert
           message="上传提示"
@@ -69,14 +69,14 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
         listType="picture"
       >
         <div className="flex justify-center items-center">
-          <AiOutlineInbox className="text-blue-500 text-6xl" />
+          <AiOutlineInbox className="text-brand text-6xl" />
         </div>
         <p className="ant-upload-text !my-3">点击或拖拽文件到此区域上传</p>
       </Dragger>
 
       {fileList.length > 0 && (
         <div className="mt-6 flex justify-between items-center">
-          <span className="text-gray-600">
+          <span className="text-ink-muted">
             已选择 {fileList.length} 个文件，总大小：
             {formatFileSize(fileList.reduce((acc, file) => acc + (file.size || 0), 0))}
           </span>
@@ -102,7 +102,7 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
             <div key={task.uploadId} className="border rounded p-3">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm truncate flex-1">{task.file.name}</span>
-                <span className="text-xs text-gray-500 ml-2">{formatFileSize(task.file.size)}</span>
+                <span className="text-xs text-ink-faint ml-2">{formatFileSize(task.file.size)}</span>
               </div>
               <Progress
                 percent={task.progress}
@@ -110,7 +110,7 @@ const UploadPanel = ({ albumId, onUploaded }: UploadComponentProps) => {
                 size="small"
               />
               <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-ink-faint">
                   {task.status === 'checking' && '校验中...'}
                   {task.status === 'uploading' && `直传七牛 ${task.progress}%`}
                   {task.status === 'completed' && '上传完成'}

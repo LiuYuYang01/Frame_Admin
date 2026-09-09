@@ -58,6 +58,7 @@ export default () => {
       setUnboundPhotos(data.result);
       setUnboundPhotosTotal(data.total);
     } catch {
+      // 忽略
     } finally {
       setUnboundPhotosLoading(false);
     }
@@ -117,6 +118,7 @@ export default () => {
           setSelectedUnboundPhotoIds([]);
           await loadUnboundPhotos();
         } catch {
+          // 忽略
         } finally {
           setCleanupActionLoading(false);
         }
@@ -273,14 +275,14 @@ export default () => {
                 }}
               >
                 <div className="relative group cursor-pointer" onClick={() => handleViewAlbum(0)}>
-                  <div className="bg-white rounded-xl !p-0.5 md:p-5 transition-all hover:-translate-y-1 overflow-hidden">
+                  <div className="bg-panel rounded-xl !p-0.5 md:p-5 transition-all hover:-translate-y-1 overflow-hidden">
                     <div className="flex flex-col items-center gap-2 justify-center">
                       <div className="w-full aspect-square flex items-center justify-center">
                         <img src={FileSvg} alt="" />
                       </div>
                       <div className="flex justify-between items-center w-full pb-2">
                         <div className="text-center w-full flex flex-col justify-center">
-                          <div className="text-gray-800 truncate px-1 !text-sm md:text-base group-hover:text-blue-500 transition-colors" title="全部">
+                          <div className="text-ink truncate px-1 !text-sm md:text-base group-hover:text-brand transition-colors" title="全部">
                             全部
                           </div>
                         </div>
@@ -316,7 +318,7 @@ export default () => {
                   }}
                 >
                   <div className="relative group cursor-pointer" onClick={() => handleViewAlbum(album.id)}>
-                    <div className="bg-white rounded-xl !p-0.5 md:p-5 transition-all hover:-translate-y-1 overflow-hidden">
+                    <div className="bg-panel rounded-xl !p-0.5 md:p-5 transition-all hover:-translate-y-1 overflow-hidden">
                       {/* 封面区域 */}
                       <div className="flex flex-col items-center gap-2 justify-center">
                         {album.cover ? (
@@ -338,7 +340,7 @@ export default () => {
                         {/* 相册名称和信息 */}
                         <div className="flex justify-between items-center w-full pb-2">
                           <div className="text-center w-full flex flex-col justify-center">
-                            <div className="text-gray-800 truncate px-1 !text-sm md:text-base group-hover:text-blue-500 transition-colors" title={album.name}>
+                            <div className="text-ink truncate px-1 !text-sm md:text-base group-hover:text-brand transition-colors" title={album.name}>
                               {album.name}
                             </div>
 
@@ -348,7 +350,7 @@ export default () => {
                           {/* 操作按钮 */}
                           <div className="absolute bottom-[7px] right-2 border transition-all rounded-md hidden group-hover:block">
                             <Dropdown menu={{ items: getMenuItems(album) }} trigger={['click']}>
-                              <Button type="text" size="small" icon={<AiOutlineEllipsis />} className="bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl border-0" onClick={(e) => e.stopPropagation()} />
+                              <Button type="text" size="small" icon={<AiOutlineEllipsis />} className="bg-panel/90 backdrop-blur-sm shadow-lg hover:shadow-xl border-0" onClick={(e) => e.stopPropagation()} />
                             </Dropdown>
                           </div>
                         </div>
@@ -389,7 +391,7 @@ export default () => {
           />
 
           <Space wrap>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-ink-muted">
               共 {unboundPhotosTotal} 张，已选 {selectedUnboundPhotoIds.length} 张
             </span>
             <Button type="link" size="small" onClick={handleToggleSelectAllUnboundPhotos}>
@@ -445,7 +447,7 @@ export default () => {
                       );
                     }}
                   />
-                  <div className={`truncate bg-white p-2 text-xs ${selectedUnboundPhotoIds.includes(photo.id) ? 'text-primary' : 'text-gray-700'}`}>
+                  <div className={`truncate bg-panel p-2 text-xs ${selectedUnboundPhotoIds.includes(photo.id) ? 'text-primary' : 'text-ink-muted'}`}>
                     {photo.name}
                   </div>
                 </div>

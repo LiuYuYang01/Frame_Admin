@@ -191,27 +191,27 @@ export default () => {
         <div className="space-y-6">
           {/* 标题 */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">{footprint.title}</h2>
-            <div className="text-gray-500 text-sm">创建于 {new Date(footprint.create_time).toLocaleString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+            <h2 className="text-2xl font-bold text-ink mb-2">{footprint.title}</h2>
+            <div className="text-ink-faint text-sm">创建于 {new Date(footprint.create_time).toLocaleString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
           </div>
 
           {/* 内容描述 */}
           {footprint.content && (
             <div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-700">内容描述</h3>
-              <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{footprint.content}</p>
+              <h3 className="text-lg font-semibold mb-2 text-ink">内容描述</h3>
+              <p className="text-ink-muted whitespace-pre-wrap leading-relaxed">{footprint.content}</p>
             </div>
           )}
 
           {/* 地址和位置信息 */}
           {(footprint.address || footprint.position) && (
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-gray-700">位置信息</h3>
+              <h3 className="text-lg font-semibold mb-3 text-ink">位置信息</h3>
               <Descriptions column={1} bordered size="small">
                 {footprint.address && (
                   <Descriptions.Item label="地址">
                     <div className="flex items-center gap-2">
-                      <AiOutlineEnvironment className="text-blue-500" />
+                      <AiOutlineEnvironment className="text-brand" />
                       <span>{footprint.address}</span>
                     </div>
                   </Descriptions.Item>
@@ -234,16 +234,16 @@ export default () => {
 
           {/* 关联相册 */}
           <div>
-            <h3 className="text-lg font-semibold mb-3 text-gray-700">关联相册</h3>
+            <h3 className="text-lg font-semibold mb-3 text-ink">关联相册</h3>
             {footprint.album_id && footprint.album_name ? (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-canvas rounded-lg">
                 {coverUrl && (
                   <div className="w-14 h-14 rounded overflow-hidden flex-shrink-0">
                     <img src={coverUrl} alt={footprint.album_name} className="w-full h-full object-cover" />
                   </div>
                 )}
                 <div className="flex-1">
-                  <div className="font-medium text-gray-800">{footprint.album_name}</div>
+                  <div className="font-medium text-ink">{footprint.album_name}</div>
                   <Button type="link" size="small" className="!px-0" onClick={() => navigate(`/albums/${footprint.album_id}`)}>
                     查看相册详情 →
                   </Button>
@@ -256,7 +256,7 @@ export default () => {
 
           {/* 相册照片展示 */}
           <div>
-            <h3 className="text-lg font-semibold mb-3 text-gray-700">照片 ({photos.length})</h3>
+            <h3 className="text-lg font-semibold mb-3 text-ink">照片 ({photos.length})</h3>
             {photosLoading ? (
               <div className="flex items-center justify-center py-10">
                 <Spin />

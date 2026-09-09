@@ -151,11 +151,11 @@ export default () => {
       render: (_, record) => {
         const coverUrl = getFootprintCover(record);
         return (
-          <div className="relative w-14 h-14 rounded overflow-hidden bg-gray-100">
+          <div className="relative w-14 h-14 rounded overflow-hidden bg-canvas-deep">
             {coverUrl ? (
               <Image src={coverUrl} alt={record.title} width={56} height={56} className="object-cover" preview={false} />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">无</div>
+              <div className="w-full h-full flex items-center justify-center text-ink-faint text-xs">无</div>
             )}
           </div>
         );
@@ -191,7 +191,7 @@ export default () => {
       dataIndex: 'album_name',
       width: 140,
       ellipsis: true,
-      render: (albumName?: string) => albumName || <span className="text-gray-400">未关联</span>,
+      render: (albumName?: string) => albumName || <span className="text-ink-faint">未关联</span>,
     },
     {
       title: '创建时间',

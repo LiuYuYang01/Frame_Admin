@@ -42,7 +42,7 @@ export default function InfoCard() {
         </p>
 
         <button
-          className="bg-white text-blue-400 font-bold py-1 px-4 rounded-sm transition-transform hover:scale-105 cursor-pointer flex items-center gap-1"
+          className="bg-white text-primary font-bold py-1 px-4 rounded-sm transition-transform hover:scale-105 cursor-pointer flex items-center gap-1"
           onClick={() => navigate('/upload')}
         >
           去上传 <DoubleRightOutlined />

@@ -60,6 +60,7 @@ export default () => {
       setPhotos(data.result);
       setPhotosTotal(data.total);
     } catch {
+      // 忽略
     } finally {
       setLoading(false);
     }
@@ -80,6 +81,7 @@ export default () => {
       setAvailablePhotos(data.result);
       setAvailablePhotosTotal(data.total);
     } catch {
+      // 忽略
     } finally {
       setAvailablePhotosLoading(false);
     }
@@ -129,6 +131,7 @@ export default () => {
       setSelectedPhotoIds([]);
       getAlbumPhotos();
     } catch {
+      // 忽略
     }
   };
 
@@ -153,6 +156,7 @@ export default () => {
       message.success(nextFeatured ? '已设为收藏' : '已取消收藏');
       setPhotos((prev) => prev.map((item) => (item.id === photo.id ? { ...item, is_featured: nextFeatured } : item)));
     } catch {
+      // 忽略
     }
   };
 
@@ -171,6 +175,7 @@ export default () => {
       setEditPhotoName('');
       getAlbumPhotos();
     } catch {
+      // 忽略
     }
   };
 
@@ -180,10 +185,10 @@ export default () => {
       title: '删除照片',
       content: (
         <div className="space-y-2">
-          <p className="text-gray-600">
+          <p className="text-ink-muted">
             <b>从相册移除：</b>只从当前相册中移除，照片依然保留在系统中
           </p>
-          <p className="text-red-600">
+          <p className="text-danger">
             <b>彻底删除：</b>从系统中完全删除此照片（不可恢复）
           </p>
         </div>
@@ -406,7 +411,7 @@ export default () => {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
               {Array.from({ length: photosLimit }).map((_, index) => (
-                <div key={index} className="aspect-square rounded-lg bg-gray-100 animate-pulse" />
+                <div key={index} className="aspect-square rounded-lg bg-canvas-deep animate-pulse" />
               ))}
             </div>
           ) : photos.length === 0 ? (
@@ -423,8 +428,8 @@ export default () => {
           ) : (
             <>
               {isBulkSelectMode && (
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2">
-                  <div className="flex items-center gap-3 text-sm text-gray-700">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 rounded-lg border border-dashed bg-canvas px-3 py-2">
+                  <div className="flex items-center gap-3 text-sm text-ink-muted">
                     <span>
                       已选择 <span className="font-semibold">{selectedAlbumPhotoIds.length}</span> 张照片
                     </span>
@@ -457,33 +462,33 @@ export default () => {
                           <div className="px-1 py-2">
                             <div className="text-tiny text-default-400 mt-1">
                               <div className="flex space-x-2">
-                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片名称：</span>
-                                <span className="line-clamp-1 text-gray-600">{photo.name}</span>
+                                <span className="flex justify-end w-[70px] text-ink font-bold">图片名称：</span>
+                                <span className="line-clamp-1 text-ink-muted">{photo.name}</span>
                               </div>
 
                               <div className="flex space-x-2">
-                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片尺寸：</span>
-                                <span className="text-gray-600">{photo.width && photo.height ? `${photo.width} × ${photo.height}` : '未知'}</span>
+                                <span className="flex justify-end w-[70px] text-ink font-bold">图片尺寸：</span>
+                                <span className="text-ink-muted">{photo.width && photo.height ? `${photo.width} × ${photo.height}` : '未知'}</span>
                               </div>
 
                               <div className="flex space-x-2">
-                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片大小：</span>
-                                <span className="text-gray-600">{formatFileSize(photo.size)}</span>
+                                <span className="flex justify-end w-[70px] text-ink font-bold">图片大小：</span>
+                                <span className="text-ink-muted">{formatFileSize(photo.size)}</span>
                               </div>
 
                               <div className="flex space-x-2">
-                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片类型：</span>
-                                <span className="text-gray-600">{photo.type ? photo.type.toUpperCase() : '未知'}</span>
+                                <span className="flex justify-end w-[70px] text-ink font-bold">图片类型：</span>
+                                <span className="text-ink-muted">{photo.type ? photo.type.toUpperCase() : '未知'}</span>
                               </div>
 
                               <div className="flex space-x-2">
-                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片时间：</span>
-                                <span className="text-gray-600">{new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                <span className="flex justify-end w-[70px] text-ink font-bold">图片时间：</span>
+                                <span className="text-ink-muted">{new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                               </div>
 
                               <div className="flex space-x-2">
-                                <span className="flex justify-end w-[70px] text-gray-700 font-bold">图片描述：</span>
-                                <span className="line-clamp-1 text-gray-600">{photo.description || '---'}</span>
+                                <span className="flex justify-end w-[70px] text-ink font-bold">图片描述：</span>
+                                <span className="line-clamp-1 text-ink-muted">{photo.description || '---'}</span>
                               </div>
                             </div>
                           </div>
@@ -504,7 +509,7 @@ export default () => {
                             }
                           }}
                         >
-                          <div className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 shadow-md transition-all duration-300 ${isBulkSelectMode && isSelected ? 'ring-4 ring-blue-500' : 'hover:shadow-xl'}`}>
+                          <div className={`relative aspect-square overflow-hidden rounded-lg bg-canvas-deep shadow-md transition-all duration-300 ${isBulkSelectMode && isSelected ? 'ring-4 ring-brand' : 'hover:shadow-xl'}`}>
                             <PreviewImage
                               src={getThumbImageUrl(photo.url, photo.original_url)}
                               alt={photo.name}
@@ -572,9 +577,9 @@ export default () => {
                                 }}
                               />
                             )}
-                            {isBulkSelectMode && isSelected && <div className="absolute inset-0 bg-blue-500/10 z-10" />}
+                            {isBulkSelectMode && isSelected && <div className="absolute inset-0 bg-brand/10 z-10" />}
                           </div>
-                          <div className={`mt-2 text-sm text-gray-700 truncate px-1 font-medium ${isSelected && '!text-primary'}`}>{photo.name}</div>
+                          <div className={`mt-2 text-sm text-ink-muted truncate px-1 font-medium ${isSelected && '!text-primary'}`}>{photo.name}</div>
                         </div>
                       </Tooltip>
                     );
@@ -678,7 +683,7 @@ export default () => {
                         setSelectedPhotoIds((prev) => (prev.includes(photo.id) ? prev.filter((id) => id !== photo.id) : [...prev, photo.id]));
                       }}
                     />
-                    <div className={`p-2 bg-white text-xs truncate ${selectedPhotoIds.includes(photo.id) ? 'text-primary' : 'text-gray-700'}`}>{photo.name}</div>
+                    <div className={`p-2 bg-panel text-xs truncate ${selectedPhotoIds.includes(photo.id) ? 'text-primary' : 'text-ink-muted'}`}>{photo.name}</div>
                   </div>
                 ))}
               </div>
@@ -718,12 +723,12 @@ export default () => {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">照片名称</label>
+            <label className="block text-sm font-medium text-ink-muted mb-2">照片名称</label>
             <Input placeholder="请输入照片名称" value={editPhotoName} onChange={(e) => setEditPhotoName(e.target.value)} onPressEnter={handleUpdatePhoto} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">照片描述</label>
+            <label className="block text-sm font-medium text-ink-muted mb-2">照片描述</label>
             <Input.TextArea placeholder="请输入照片描述" value={editPhotoDescription} onChange={(e) => setEditPhotoDescription(e.target.value)} onPressEnter={handleUpdatePhoto} autoSize={{ minRows: 2, maxRows: 6 }} />
           </div>
         </div>
@@ -762,11 +767,11 @@ export default () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-ink-muted">
               将通过七牛云持久化处理压缩 Bucket 中的原图（长边不超过 {SLIM_MAX_LONG_EDGE}px，JPEG 质量 {SLIM_QUALITY}），无需删除重传。
             </p>
 
-            <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700 space-y-1">
+            <div className="rounded-lg bg-canvas px-4 py-3 text-sm text-ink-muted space-y-1">
               <div>待处理：{slimPreview?.count ?? 0} 张</div>
               <div>总体积：{formatFileSize(slimPreview?.totalSize ?? 0)}</div>
               <div>
@@ -775,16 +780,16 @@ export default () => {
                   : `触发条件：单张大于 ${formatFileSize(SLIM_MIN_SIZE_BYTES)}（GIF 自动跳过）`}
               </div>
               {slimSelectedMode && slimPreview?.count === 0 && (
-                <div className="text-amber-600">选中的照片均为 GIF 或不支持处理的格式</div>
+                <div className="text-warn">选中的照片均为 GIF 或不支持处理的格式</div>
               )}
             </div>
             {slimRunning && (
               <div className="flex flex-col items-center gap-2 py-4">
                 <Spin />
-                {slimCurrentName && <div className="text-xs text-gray-500 truncate">正在处理：{slimCurrentName}</div>}
+                {slimCurrentName && <div className="text-xs text-ink-faint truncate">正在处理：{slimCurrentName}</div>}
               </div>
             )}
-            {slimResultText && <div className="text-sm text-green-600">{slimResultText}</div>}
+            {slimResultText && <div className="text-sm text-ok">{slimResultText}</div>}
           </div>
         )}
       </Modal>
