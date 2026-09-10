@@ -13,11 +13,12 @@ const pageConfigMap: Record<string, { title: string; icon: React.ReactNode }> = 
   '/setup': { title: '系统配置', icon: <FiSettings /> },
 };
 
-// 前缀匹配详情页（如 /albums/:id）到父级菜单配置
+// 前缀匹配详情页（如 /albums/:id）到父级菜单配置；返回分组 key，保证详情页与列表页共用同一 tab，避免重复
 const resolveConfig = (path: string) => {
-  if (pageConfigMap[path]) return pageConfigMap[path];
+  if (pageConfigMap[path]) return { key: path, ...pageConfigMap[path] };
   const parentKey = Object.keys(pageConfigMap).find((key) => key !== '/' && path.startsWith(`${key}/`));
-  return parentKey ? pageConfigMap[parentKey] : { title: '页面', icon: null };
+  if (parentKey) return { key: parentKey, ...pageConfigMap[parentKey] };
+  return { key: path, title: '页面', icon: null };
 };
 
 export default () => {
@@ -33,7 +34,7 @@ export default () => {
   useEffect(() => {
     const path = location.pathname;
     const config = resolveConfig(path);
-    addTab({ key: path, title: config.title, path, closable: path !== '/' });
+    addTab({ key: config.key, title: config.title, path, closable: config.key !== '/' });
   }, [location.pathname, addTab]);
 
   const checkScrollStatus = useCallback(() => {
@@ -135,7 +136,8 @@ export default () => {
 
   const handleTabClick = (key: string) => {
     setActiveTab(key);
-    navigate(key);
+    const tab = tabs.find((t) => t.key === key);
+    navigate(tab?.path || key);
   };
 
   const handleTabClose = (key: string, e?: React.MouseEvent) => {

@@ -90,6 +90,19 @@ export default create(
     }),
     {
       name: 'tabs_storage',
+      version: 1,
+      // 清理历史遗留的重复 tab（升级时重置一次，配合 PageTab 的分组 key 避免再次出现）
+      migrate: () => ({
+        tabs: [
+          {
+            key: '/',
+            title: '首页',
+            path: '/',
+            closable: false,
+          },
+        ],
+        activeTabKey: '/',
+      }),
     }
   )
 );

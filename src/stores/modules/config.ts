@@ -14,7 +14,7 @@ export interface ThemePreset {
 }
 
 export const themePresets: ThemePreset[] = [
-  { key: 'classic', primary: '#1677FF', hover: '#0958D9', accent: '#4096FF', label: '经典蓝' },
+  { key: 'classic', primary: '#539dfd', hover: '#3d86ef', accent: '#7db7fe', label: '经典蓝' },
   { key: 'cobalt', primary: '#3B5BDB', hover: '#3248B8', accent: '#6E85F5', label: '钴蓝' },
   { key: 'emerald', primary: '#0E9F6E', hover: '#0A7A55', accent: '#2FBF8F', label: '翡翠' },
   { key: 'violet', primary: '#7048E8', hover: '#5A38C4', accent: '#9B7BF0', label: '紫罗兰' },
@@ -79,7 +79,7 @@ const useConfigStore = create<ConfigStore>()(
   persist(
     (set, get) => ({
       colorMode: 'light',
-      sidebarStyle: 'dark',
+      sidebarStyle: 'light',
       primaryColor: 'classic',
       refreshPageRouteIndexes: {},
       triggerPageRefresh: (path: string) => {

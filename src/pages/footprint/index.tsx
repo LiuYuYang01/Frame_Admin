@@ -207,10 +207,11 @@ export default () => {
     {
       title: '操作',
       key: 'action',
-      width: 80,
+      width: 120,
+      align: 'center',
       fixed: 'right',
       render: (_, record) => (
-        <Space size={4}>
+        <Space size={15}>
           <Tooltip title="编辑">
             <Button type="text" size="small" icon={<AiOutlineEdit className="text-base" />} onClick={() => handleOpenModal(record)} />
           </Tooltip>
@@ -238,7 +239,7 @@ export default () => {
             </Button>
           </div>
         }
-        className="[&_.ant-card-body]:min-h-[calc(100vh-180px)]"
+        className="[&_.ant-card-body]:min-h-[calc(100vh-180px)] [&_.ant-card-body]:p-0!"
       >
         <Table
           rowKey="id"
@@ -247,6 +248,7 @@ export default () => {
           dataSource={footprints}
           scroll={{ x: 1000 }}
           pagination={{
+            size: 'default',
             current: pagination.page,
             pageSize: pagination.limit,
             total,

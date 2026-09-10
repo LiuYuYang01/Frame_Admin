@@ -10,7 +10,7 @@
   --color-stroke: #e2e8f0;
   --color-black: #1c2434;
   --color-black-2: #010101;
-  --color-primary: #1677ff;
+  --color-primary: #539dfd;
   --color-boxdark: #334459;
   --color-boxdark-2: #263444;
   --color-strokedark: #475f7d;
@@ -60,20 +60,20 @@
   --color-line: #e4e7ec;
   --color-skeleton: #ebedf0;
   /* 主色：经典蓝 */
-  --color-brand: #1677ff;
-  --color-brand-hover: #0958d9;
-  --color-brand-soft: #e6f4ff;
-  --color-accent: #4096ff;
-  --color-accent-hover: #1677ff;
-  --color-accent-soft: #e6f4ff;
+  --color-brand: #539dfd;
+  --color-brand-hover: #3d86ef;
+  --color-brand-soft: #e8f2ff;
+  --color-accent: #7db7fe;
+  --color-accent-hover: #539dfd;
+  --color-accent-soft: #e8f2ff;
   /* 墨轨：深墨蓝侧栏体系 */
   --color-rail-ink: #0e1626;
   --color-rail-ink-deep: #070d18;
   --color-rail-ink-line: rgba(255, 255, 255, 0.08);
   --color-rail-ink-text: #8a99b8;
   --color-rail-ink-text-strong: #e6ebf5;
-  --color-rail-ink-selected: rgba(22, 119, 255, 0.18);
-  --color-rail-ink-selected-glow: rgba(22, 119, 255, 0.3);
+  --color-rail-ink-selected: rgba(83, 157, 253, 0.18);
+  --color-rail-ink-selected-glow: rgba(83, 157, 253, 0.3);
   --color-rail-ink-hover: rgba(255, 255, 255, 0.05);
   /* 语义色：文字加深 + 半透明底，提升标签可读性 */
   --color-ok: #047857;
@@ -82,8 +82,8 @@
   --color-warn-soft: rgba(194, 65, 12, 0.12);
   --color-danger: #dc2626;
   --color-danger-soft: rgba(220, 38, 38, 0.1);
-  --color-info: #1677ff;
-  --color-info-soft: rgba(22, 119, 255, 0.1);
+  --color-info: #539dfd;
+  --color-info-soft: rgba(83, 157, 253, 0.1);
   --color-field: #ffffff;
   --color-elevated: #ffffff;
 }

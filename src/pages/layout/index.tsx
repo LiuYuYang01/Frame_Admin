@@ -115,7 +115,7 @@ const MainLayout: React.FC = () => {
         >
           <div className={`flex h-full flex-col ${isLightSidebar ? 'bg-transparent' : 'bg-rail-ink'}`}>
             <div
-              className={`flex h-14 shrink-0 items-center ${
+              className={`flex h-14 shrink-0 items-center justify-center ${
                 isLightSidebar ? 'border-b border-line' : 'border-b border-rail-ink-line'
               } ${collapsed ? 'justify-center px-2' : 'px-4'}`}
             >
