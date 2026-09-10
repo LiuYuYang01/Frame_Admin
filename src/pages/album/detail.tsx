@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination, Segmented } from 'antd';
+import { Card, Button, message, Spin, Empty, Modal, Checkbox, Input, Space, Pagination, Segmented, Select } from 'antd';
 import { AiOutlineArrowLeft, AiOutlineDelete, AiOutlineSearch, AiOutlineEdit, AiOutlineRocket, AiOutlineStar, AiFillStar } from 'react-icons/ai';
 import { useParams, useNavigate } from 'react-router';
 import { getAlbumPhotosAPI, addPhotosToAlbumAPI, removePhotosFromAlbumAPI, getPhotosExcludeFromAlbumAPI } from '@/api/album';
-import { updatePhotoAPI, deletePhotoAPI, previewSlimPhotosAPI, slimPhotosAPI } from '@/api/photo';
+import { updatePhotoAPI, deletePhotoAPI, previewSlimPhotosAPI, slimPhotosAPI, extractPhotoExifAPI } from '@/api/photo';
 import type { Photo, SlimPhotoPreview } from '@/types/photo';
 import { Tooltip } from '@heroui/react';
 import UploadPanel from '@/components/Upload';
@@ -38,6 +38,9 @@ export default () => {
   const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
   const [editPhotoName, setEditPhotoName] = useState('');
   const [editPhotoDescription, setEditPhotoDescription] = useState('');
+  const [editPhotoTags, setEditPhotoTags] = useState<string[]>([]);
+  const [editPhotoCamera, setEditPhotoCamera] = useState('');
+  const [editPhotoLocation, setEditPhotoLocation] = useState('');
   const [isBulkSelectMode, setIsBulkSelectMode] = useState(false);
   const [selectedAlbumPhotoIds, setSelectedAlbumPhotoIds] = useState<number[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
@@ -140,6 +143,9 @@ export default () => {
     setEditingPhoto(photo);
     setEditPhotoName(photo.name);
     setEditPhotoDescription(photo.description || '');
+    setEditPhotoTags(photo.tags || []);
+    setEditPhotoCamera(photo.camera || '');
+    setEditPhotoLocation(photo.location || '');
     setIsEditModalOpen(true);
   };
 
@@ -168,11 +174,20 @@ export default () => {
       return;
     }
     try {
-      await updatePhotoAPI(editingPhoto.id, { name: editPhotoName, description: editPhotoDescription });
+      await updatePhotoAPI(editingPhoto.id, {
+        name: editPhotoName,
+        description: editPhotoDescription,
+        tags: editPhotoTags,
+        camera: editPhotoCamera,
+        location: editPhotoLocation,
+      });
       message.success('修改照片名称成功');
       setIsEditModalOpen(false);
       setEditingPhoto(null);
       setEditPhotoName('');
+      setEditPhotoTags([]);
+      setEditPhotoCamera('');
+      setEditPhotoLocation('');
       getAlbumPhotos();
     } catch {
       // 忽略
@@ -387,6 +402,28 @@ export default () => {
     openSlimModal(selectedAlbumPhotoIds);
   };
 
+  const handleBulkExtractExif = () => {
+    if (selectedAlbumPhotoIds.length === 0) {
+      message.warning('请选择要提取的照片');
+      return;
+    }
+    Modal.confirm({
+      title: `提取 ${selectedAlbumPhotoIds.length} 张照片的拍摄信息？`,
+      content: '将从原图 EXIF 中提取拍摄设备与拍摄地点，手动填写过的内容不会被覆盖。瘦身后原图的 EXIF 已被去除，无法提取。',
+      okText: '开始提取',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const { data } = await extractPhotoExifAPI({ ids: selectedAlbumPhotoIds });
+          message.success(`已为 ${data.updated}/${data.total} 张照片更新拍摄信息`);
+          getAlbumPhotos();
+        } catch {
+          message.error('提取失败');
+        }
+      },
+    });
+  };
+
   return (
     <div className="space-y-2">
       {/* 照片网格 */}
@@ -441,6 +478,9 @@ export default () => {
                     <Button onClick={handleBulkRemovePhotos} loading={bulkActionLoading} disabled={selectedAlbumPhotoIds.length === 0}>
                       从相册移除
                     </Button>
+                    <Button onClick={handleBulkExtractExif} disabled={selectedAlbumPhotoIds.length === 0}>
+                      提取拍摄信息
+                    </Button>
                     <Button onClick={handleBulkSlimPhotos} loading={slimPreviewLoading || slimRunning} disabled={selectedAlbumPhotoIds.length === 0}>
                       一键瘦身
                     </Button>
@@ -484,6 +524,16 @@ export default () => {
                               <div className="flex space-x-2">
                                 <span className="flex justify-end w-[70px] text-ink font-bold">图片时间：</span>
                                 <span className="text-ink-muted">{new Date(photo.create_time).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                              </div>
+
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-ink font-bold">拍摄地点：</span>
+                                <span className="line-clamp-1 text-ink-muted">{photo.location || '---'}</span>
+                              </div>
+
+                              <div className="flex space-x-2">
+                                <span className="flex justify-end w-[70px] text-ink font-bold">拍摄设备：</span>
+                                <span className="line-clamp-1 text-ink-muted">{photo.camera || '---'}</span>
                               </div>
 
                               <div className="flex space-x-2">
@@ -718,6 +768,8 @@ export default () => {
           setEditingPhoto(null);
           setEditPhotoName('');
           setEditPhotoTags([]);
+          setEditPhotoCamera('');
+          setEditPhotoLocation('');
         }}
         okText="保存"
         cancelText="取消"
@@ -743,6 +795,16 @@ export default () => {
               onChange={setEditPhotoTags}
               tokenSeparators={[',']}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink-muted mb-2">拍摄设备</label>
+            <Input placeholder="如：Apple iPhone 15 Pro" value={editPhotoCamera} onChange={(e) => setEditPhotoCamera(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink-muted mb-2">拍摄地点</label>
+            <Input placeholder="如：山东省青岛市市南区" value={editPhotoLocation} onChange={(e) => setEditPhotoLocation(e.target.value)} />
           </div>
         </div>
       </Modal>

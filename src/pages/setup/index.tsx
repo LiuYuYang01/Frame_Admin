@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { BiBarChart, BiCloudUpload } from 'react-icons/bi';
+import { MdOutlineLocationOn } from 'react-icons/md';
 import { Card, Spin } from 'antd';
 import { getEnvConfigListAPI, type EnvConfigItem } from '@/api/config';
-import { BaiduForm, QiniuForm } from './components';
+import { BaiduForm, GaodeForm, QiniuForm } from './components';
 import { SETUP_ENV_NAMES, type SetupEnvName } from './components/types';
 
 interface MenuItem {
@@ -22,6 +23,11 @@ const MENU_LIST: MenuItem[] = [
     key: 'qiniu_storage',
     title: '七牛云存储',
     icon: <BiCloudUpload />,
+  },
+  {
+    key: 'gaode_map',
+    title: '高德地图',
+    icon: <MdOutlineLocationOn />,
   },
 ];
 
@@ -138,6 +144,7 @@ export default function SetupPage() {
         <div className="flex-1 overflow-y-auto p-6">
           {activeKey === 'baidu_statis' && <BaiduForm row={byName[activeKey]} onSaved={reload} />}
           {activeKey === 'qiniu_storage' && <QiniuForm row={byName[activeKey]} onSaved={reload} />}
+          {activeKey === 'gaode_map' && <GaodeForm row={byName[activeKey]} onSaved={reload} />}
         </div>
       </div>
     </Card>

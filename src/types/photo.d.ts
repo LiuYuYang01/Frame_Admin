@@ -12,6 +12,9 @@ export interface Photo {
   width?: number;
   height?: number;
   type: string;
+  tags?: string[];
+  camera?: string;
+  location?: string;
   is_featured?: boolean;
   create_time: string;
   albums?: Album[];
@@ -32,6 +35,8 @@ export interface UpdatePhotoParams {
   description?: string;
   is_featured?: boolean;
   tags?: string[];
+  camera?: string;
+  location?: string;
 }
 
 export interface SlimPhotoParams {
@@ -71,4 +76,14 @@ export interface SlimPhotosSummary {
   skipped: number;
   failed: number;
   results: SlimPhotoItemResult[];
+}
+
+export interface ExtractExifParams {
+  albumId?: number;
+  ids?: number[];
+}
+
+export interface ExtractExifSummary {
+  total: number;
+  updated: number;
 }

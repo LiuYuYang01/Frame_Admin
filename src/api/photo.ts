@@ -6,6 +6,8 @@ import type {
   SlimPhotoParams,
   SlimPhotoPreview,
   SlimPhotosSummary,
+  ExtractExifParams,
+  ExtractExifSummary,
 } from '@/types/photo';
 
 /**
@@ -88,6 +90,15 @@ export const previewSlimPhotosAPI = (params: SlimPhotoParams) => {
  */
 export const slimPhotosAPI = (params: SlimPhotoParams) => {
   return request<SlimPhotosSummary>('POST', '/photo/slim', {
+    data: params,
+  });
+};
+
+/**
+ * 批量提取拍摄信息（EXIF 中的拍摄设备与拍摄地点）
+ */
+export const extractPhotoExifAPI = (params: ExtractExifParams) => {
+  return request<ExtractExifSummary>('POST', '/photo/extract-exif', {
     data: params,
   });
 };

@@ -20,6 +20,10 @@ export interface QiniuStorageEnvValue {
   zone: string;
 }
 
+export interface GaodeMapEnvValue {
+  regeo_key: string;
+}
+
 export const getEnvConfigDataAPI = (name: string) => {
   return request<EnvConfigItem>('GET', `/env_config/name/${name}`);
 };
