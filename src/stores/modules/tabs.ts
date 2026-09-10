@@ -92,17 +92,19 @@ export default create(
       name: 'tabs_storage',
       version: 1,
       // 清理历史遗留的重复 tab（升级时重置一次，配合 PageTab 的分组 key 避免再次出现）
-      migrate: () => ({
-        tabs: [
-          {
-            key: '/',
-            title: '首页',
-            path: '/',
-            closable: false,
-          },
-        ],
-        activeTabKey: '/',
-      }),
+      migrate: () =>
+        ({
+          tabs: [
+            {
+              key: '/',
+              title: '首页',
+              path: '/',
+              closable: false,
+            },
+          ],
+          activeTabKey: '/',
+          // 函数字段由 store 初始化器提供，persist 恢复时会自动合并
+        }) as TabsStore,
     }
   )
 );

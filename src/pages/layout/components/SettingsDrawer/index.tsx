@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Drawer } from 'antd';
 import { FiCheck } from 'react-icons/fi';
 import { useConfigStore, themePresets, type SidebarStyle, type ColorMode } from '@/stores';
@@ -120,10 +121,12 @@ export default ({ open, onClose }: { open: boolean; onClose: () => void }) => {
                 className={`flex size-8 items-center justify-center rounded-full ${
                   selected ? 'ring-2 ring-offset-2 ring-offset-elevated' : ''
                 }`}
-                style={{
-                  backgroundColor: p.primary,
-                  '--tw-ring-color': p.primary,
-                }}
+                style={
+                  {
+                    backgroundColor: p.primary,
+                    '--tw-ring-color': p.primary,
+                  } as CSSProperties
+                }
               >
                 {selected && <FiCheck className="text-sm text-white" />}
               </span>
