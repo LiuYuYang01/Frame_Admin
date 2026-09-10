@@ -717,6 +717,7 @@ export default () => {
           setIsEditModalOpen(false);
           setEditingPhoto(null);
           setEditPhotoName('');
+          setEditPhotoTags([]);
         }}
         okText="保存"
         cancelText="取消"
@@ -730,6 +731,18 @@ export default () => {
           <div>
             <label className="block text-sm font-medium text-ink-muted mb-2">照片描述</label>
             <Input.TextArea placeholder="请输入照片描述" value={editPhotoDescription} onChange={(e) => setEditPhotoDescription(e.target.value)} onPressEnter={handleUpdatePhoto} autoSize={{ minRows: 2, maxRows: 6 }} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-ink-muted mb-2">照片标签</label>
+            <Select
+              mode="tags"
+              className="w-full"
+              placeholder="输入后回车添加标签，如：日本、东京"
+              value={editPhotoTags}
+              onChange={setEditPhotoTags}
+              tokenSeparators={[',']}
+            />
           </div>
         </div>
       </Modal>

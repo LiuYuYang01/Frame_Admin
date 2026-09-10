@@ -31,6 +31,7 @@ export interface UpdatePhotoParams {
   name?: string;
   description?: string;
   is_featured?: boolean;
+  tags?: string[];
 }
 
 export interface SlimPhotoParams {
